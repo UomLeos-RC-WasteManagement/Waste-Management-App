@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Waste Management App",
+  "main": "server.js",
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
