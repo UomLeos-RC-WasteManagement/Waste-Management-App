@@ -14,8 +14,19 @@ export default function Index() {
     );
   }
 
-  // Redirect to tabs if logged in, otherwise to login
-  return <Redirect href={user ? '/(tabs)' : '/(auth)/login'} />;
+  // If not logged in, go to login
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  // Redirect based on user role
+  if (user.role === 'collector') {
+    return <Redirect href="/(collector-tabs)" />;
+  } else if (user.role === 'vendor') {
+    return <Redirect href="/(vendor-tabs)" />;
+  } else {
+    return <Redirect href="/(tabs)" />;
+  }
 }
 
 const styles = StyleSheet.create({

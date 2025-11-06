@@ -5,7 +5,131 @@ const Admin = require('../models/Admin');
 const { generateToken } = require('../config/jwt');
 const { generateUserQRCode } = require('../utils/helpers');
 
-// @desc    Register a new user
+// @desc    Register a new user/collector/vendor
+// @route   POST /api/auth/register
+// @access  Public
+exports.register = async (req, res) => {
+  try {
+    const { name, email, password, phone, address, role, ...roleSpecificData } = req.body;
+
+    if (!role || !['user', 'collector', 'vendor'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid role (user, collector, or vendor)'
+      });
+    }
+
+    // Check if email already exists in any collection
+    const [existingUser, existingCollector, existingVendor] = await Promise.all([
+      User.findOne({ email }),
+      Collector.findOne({ email }),
+      Vendor.findOne({ email })
+    ]);
+
+    if (existingUser || existingCollector || existingVendor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered'
+      });
+    }
+
+    let account;
+    let responseData;
+
+    // Create account based on role
+    if (role === 'user') {
+      account = await User.create({
+        name,
+        email,
+        password,
+        phone,
+        address
+      });
+
+      // Generate QR code for user
+      const qrCode = await generateUserQRCode(account._id);
+      account.qrCode = qrCode;
+      await account.save();
+
+      responseData = {
+        _id: account._id,
+        name: account.name,
+        email: account.email,
+        phone: account.phone,
+        points: account.points,
+        qrCode: account.qrCode,
+        role: 'user'
+      };
+    } else if (role === 'collector') {
+      const { acceptedWasteTypes, operatingHours, description, location } = roleSpecificData;
+      
+      account = await Collector.create({
+        name,
+        email,
+        password,
+        phone,
+        address,
+        acceptedWasteTypes: acceptedWasteTypes || ['Plastic', 'Paper', 'Glass', 'Metal'],
+        operatingHours,
+        description,
+        location
+      });
+
+      responseData = {
+        _id: account._id,
+        name: account.name,
+        email: account.email,
+        phone: account.phone,
+        totalWasteCollected: account.totalWasteCollected,
+        acceptedWasteTypes: account.acceptedWasteTypes,
+        isVerified: account.isVerified,
+        role: 'collector'
+      };
+    } else if (role === 'vendor') {
+      const { businessType, description, website, logo } = roleSpecificData;
+      
+      account = await Vendor.create({
+        name,
+        email,
+        password,
+        phone,
+        address,
+        businessType,
+        description,
+        website,
+        logo
+      });
+
+      responseData = {
+        _id: account._id,
+        name: account.name,
+        email: account.email,
+        phone: account.phone,
+        businessType: account.businessType,
+        totalRewards: account.totalRewards,
+        totalRedemptions: account.totalRedemptions,
+        isVerified: account.isVerified,
+        role: 'vendor'
+      };
+    }
+
+    // Generate token
+    const token = generateToken(account._id, role);
+
+    res.status(201).json({
+      success: true,
+      data: responseData,
+      token
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Register a new user (legacy endpoint - for backward compatibility)
 // @route   POST /api/auth/register/user
 // @access  Public
 exports.registerUser = async (req, res) => {

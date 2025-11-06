@@ -4,7 +4,8 @@ export const API_URL = 'http://localhost:3000/api';
 // API Endpoints
 export const ENDPOINTS = {
   // Auth
-  REGISTER: '/auth/register/user',
+  REGISTER: '/auth/register', // Unified registration for all roles
+  REGISTER_USER: '/auth/register/user', // Legacy endpoint
   LOGIN: '/auth/login',
   ME: '/auth/me',
   UPDATE_PROFILE: '/auth/update-profile',
@@ -21,6 +22,27 @@ export const ENDPOINTS = {
   JOIN_CHALLENGE: (id: string) => `/users/challenges/${id}/join`,
   LEADERBOARD: '/users/leaderboard',
   BADGES: '/users/badges',
+
+  // Collectors
+  COLLECTOR_DASHBOARD: '/collectors/dashboard',
+  COLLECTOR_VERIFY_DROPOFF: '/collectors/verify-dropoff',
+  COLLECTOR_RECORD_COLLECTION: '/collectors/record-collection', // Alias
+  COLLECTOR_TRANSACTIONS: '/collectors/transactions',
+  COLLECTOR_REPORTS: '/collectors/reports',
+  COLLECTOR_INVENTORY: '/collectors/inventory',
+  COLLECTOR_VENDORS: '/collectors/vendors',
+  COLLECTOR_PROFILE: '/collectors/profile',
+
+  // Vendors
+  VENDOR_DASHBOARD: '/vendors/dashboard',
+  VENDOR_REWARDS: '/vendors/rewards', // Vendor rewards for users
+  VENDOR_REDEMPTIONS: '/vendors/redemptions',
+  VENDOR_ANALYTICS: '/vendors/analytics',
+  VENDOR_OFFERS: '/vendors/offers', // Browse waste from collectors
+  VENDOR_PURCHASE: '/vendors/purchase', // Purchase waste
+  VENDOR_INVENTORY: '/vendors/inventory', // Purchased waste inventory
+  VENDOR_PRICING: '/vendors/pricing', // Pricing management
+  VENDOR_PROFILE: '/vendors/profile',
 };
 
 // Storage Keys

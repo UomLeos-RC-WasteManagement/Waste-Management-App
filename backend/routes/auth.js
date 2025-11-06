@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  register,
   registerUser,
   login,
   getMe,
@@ -10,7 +11,8 @@ const {
 const { protect } = require('../middleware/auth');
 
 // Public routes
-router.post('/register/user', registerUser);
+router.post('/register', register); // Unified registration for all roles
+router.post('/register/user', registerUser); // Legacy endpoint for backward compatibility
 router.post('/login', login);
 
 // Protected routes

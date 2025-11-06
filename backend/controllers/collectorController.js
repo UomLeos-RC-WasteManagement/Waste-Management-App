@@ -341,3 +341,83 @@ exports.updateProfile = async (req, res) => {
     });
   }
 };
+
+// @desc    Get collector's inventory breakdown by waste type
+// @route   GET /api/collectors/inventory
+// @access  Private (Collector)
+exports.getInventory = async (req, res) => {
+  try {
+    // Get all verified transactions for this collector
+    const transactions = await WasteTransaction.find({
+      collector: req.user._id,
+      status: 'verified'
+    });
+
+    // Calculate inventory by waste type
+    const inventory = {};
+    
+    transactions.forEach(t => {
+      if (!inventory[t.wasteType]) {
+        inventory[t.wasteType] = {
+          wasteType: t.wasteType,
+          totalQuantity: 0,
+          unit: t.quantity.unit || 'kg',
+          transactions: 0,
+          totalPoints: 0
+        };
+      }
+      inventory[t.wasteType].totalQuantity += t.quantity.value;
+      inventory[t.wasteType].transactions += 1;
+      inventory[t.wasteType].totalPoints += t.pointsEarned;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: Object.values(inventory)
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get nearby vendors list
+// @route   GET /api/collectors/vendors
+// @access  Private (Collector)
+exports.getVendors = async (req, res) => {
+  try {
+    const { radius = 50 } = req.query; // radius in km
+
+    let query = { isActive: true, isVerified: true };
+
+    // If collector has location, find vendors within radius
+    if (req.user.location && req.user.location.coordinates) {
+      query.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: req.user.location.coordinates
+          },
+          $maxDistance: radius * 1000 // Convert km to meters
+        }
+      };
+    }
+
+    const vendors = await Vendor.find(query).select(
+      'name businessType description address phone website totalRewards totalRedemptions location'
+    );
+
+    res.status(200).json({
+      success: true,
+      count: vendors.length,
+      data: vendors
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

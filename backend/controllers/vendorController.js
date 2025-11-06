@@ -1,6 +1,10 @@
 const Vendor = require('../models/Vendor');
 const Reward = require('../models/Reward');
 const RewardRedemption = require('../models/RewardRedemption');
+const WastePurchase = require('../models/WastePurchase');
+const VendorPricing = require('../models/VendorPricing');
+const Collector = require('../models/Collector');
+const WasteTransaction = require('../models/WasteTransaction');
 
 // @desc    Get vendor dashboard
 // @route   GET /api/vendors/dashboard
@@ -448,6 +452,271 @@ exports.updateProfile = async (req, res) => {
     res.status(200).json({
       success: true,
       data: vendor
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get available waste offers from collectors (marketplace)
+// @route   GET /api/vendors/offers
+// @access  Private (Vendor)
+exports.getOffers = async (req, res) => {
+  try {
+    const { wasteType, radius = 50 } = req.query; // radius in km
+
+    // Find active collectors
+    let collectorQuery = { isActive: true, isVerified: true };
+
+    // If vendor has location, find collectors within radius
+    if (req.user.location && req.user.location.coordinates) {
+      collectorQuery.location = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: req.user.location.coordinates
+          },
+          $maxDistance: radius * 1000 // Convert km to meters
+        }
+      };
+    }
+
+    const collectors = await Collector.find(collectorQuery).select(
+      'name address phone location acceptedWasteTypes totalWasteCollected'
+    );
+
+    // Get inventory for each collector
+    const offers = await Promise.all(
+      collectors.map(async (collector) => {
+        let transactionQuery = {
+          collector: collector._id,
+          status: 'verified'
+        };
+
+        if (wasteType) {
+          transactionQuery.wasteType = wasteType;
+        }
+
+        const transactions = await WasteTransaction.find(transactionQuery);
+
+        // Calculate inventory by waste type
+        const inventory = {};
+        transactions.forEach(t => {
+          if (!inventory[t.wasteType]) {
+            inventory[t.wasteType] = {
+              wasteType: t.wasteType,
+              quantity: 0,
+              unit: t.quantity.unit || 'kg'
+            };
+          }
+          inventory[t.wasteType].quantity += t.quantity.value;
+        });
+
+        return {
+          collector: {
+            _id: collector._id,
+            name: collector.name,
+            address: collector.address,
+            phone: collector.phone,
+            location: collector.location,
+            totalWasteCollected: collector.totalWasteCollected
+          },
+          inventory: Object.values(inventory)
+        };
+      })
+    );
+
+    // Filter out collectors with no inventory
+    const availableOffers = offers.filter(offer => offer.inventory.length > 0);
+
+    res.status(200).json({
+      success: true,
+      count: availableOffers.length,
+      data: availableOffers
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Purchase waste from collector
+// @route   POST /api/vendors/purchase
+// @access  Private (Vendor)
+exports.purchaseWaste = async (req, res) => {
+  try {
+    const { collectorId, wasteType, quantity, pricePerUnit, notes, pickupDate } = req.body;
+
+    if (!collectorId || !wasteType || !quantity || !pricePerUnit) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide collectorId, wasteType, quantity, and pricePerUnit'
+      });
+    }
+
+    // Verify collector exists
+    const collector = await Collector.findById(collectorId);
+    if (!collector) {
+      return res.status(404).json({
+        success: false,
+        message: 'Collector not found'
+      });
+    }
+
+    // Calculate total amount
+    const totalAmount = quantity * pricePerUnit;
+
+    // Create purchase record
+    const purchase = await WastePurchase.create({
+      vendor: req.user._id,
+      collector: collectorId,
+      wasteType,
+      quantity: {
+        value: quantity,
+        unit: 'kg'
+      },
+      pricePerUnit,
+      totalAmount,
+      pickupDate: pickupDate || new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to tomorrow
+      notes,
+      location: collector.location
+    });
+
+    await purchase.populate('collector', 'name address phone');
+
+    res.status(201).json({
+      success: true,
+      data: purchase,
+      message: 'Purchase order created successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get vendor's purchased waste inventory
+// @route   GET /api/vendors/inventory
+// @access  Private (Vendor)
+exports.getVendorInventory = async (req, res) => {
+  try {
+    const { status = 'all' } = req.query;
+
+    let query = { vendor: req.user._id };
+
+    if (status !== 'all') {
+      query.status = status;
+    }
+
+    const purchases = await WastePurchase.find(query)
+      .populate('collector', 'name address phone')
+      .sort('-createdAt');
+
+    // Calculate inventory summary
+    const inventory = {};
+    purchases
+      .filter(p => p.status === 'completed')
+      .forEach(p => {
+        if (!inventory[p.wasteType]) {
+          inventory[p.wasteType] = {
+            wasteType: p.wasteType,
+            totalQuantity: 0,
+            totalAmount: 0,
+            purchases: 0
+          };
+        }
+        inventory[p.wasteType].totalQuantity += p.quantity.value;
+        inventory[p.wasteType].totalAmount += p.totalAmount;
+        inventory[p.wasteType].purchases += 1;
+      });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        purchases,
+        summary: Object.values(inventory)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get vendor pricing
+// @route   GET /api/vendors/pricing
+// @access  Private (Vendor)
+exports.getPricing = async (req, res) => {
+  try {
+    let pricing = await VendorPricing.findOne({ vendor: req.user._id });
+
+    if (!pricing) {
+      // Create default pricing if not exists
+      pricing = await VendorPricing.create({
+        vendor: req.user._id,
+        pricing: [
+          { wasteType: 'E-waste', pricePerKg: 5.0, isActive: true },
+          { wasteType: 'Plastic', pricePerKg: 0.5, isActive: true },
+          { wasteType: 'Polythene', pricePerKg: 0.3, isActive: true },
+          { wasteType: 'Glass', pricePerKg: 0.2, isActive: true },
+          { wasteType: 'Paper', pricePerKg: 0.1, isActive: true },
+          { wasteType: 'Metal', pricePerKg: 2.0, isActive: true },
+          { wasteType: 'Organic', pricePerKg: 0.05, isActive: true }
+        ]
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: pricing
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Update vendor pricing
+// @route   PUT /api/vendors/pricing
+// @access  Private (Vendor)
+exports.updatePricing = async (req, res) => {
+  try {
+    const { pricing } = req.body;
+
+    if (!pricing || !Array.isArray(pricing)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide pricing array'
+      });
+    }
+
+    let vendorPricing = await VendorPricing.findOne({ vendor: req.user._id });
+
+    if (!vendorPricing) {
+      vendorPricing = await VendorPricing.create({
+        vendor: req.user._id,
+        pricing
+      });
+    } else {
+      vendorPricing.pricing = pricing;
+      await vendorPricing.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      data: vendorPricing,
+      message: 'Pricing updated successfully'
     });
   } catch (error) {
     res.status(500).json({

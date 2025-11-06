@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,13 +15,22 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { COLORS } from '@/constants/config';
 
+type Role = 'user' | 'collector' | 'vendor';
+
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<Role>('user');
   const [loading, setLoading] = useState(false);
+
+  const roles = [
+    { value: 'user' as Role, label: 'User', icon: '👤', color: '#2ECC71' },
+    { value: 'collector' as Role, label: 'Collector', icon: '🚛', color: '#3498DB' },
+    { value: 'vendor' as Role, label: 'Vendor', icon: '🏭', color: '#9B59B6' },
+  ];
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -32,8 +40,16 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(email.toLowerCase().trim(), password, 'user');
-      router.replace('/(tabs)');
+      await login(email.toLowerCase().trim(), password, role);
+      
+      // Navigate based on role
+      if (role === 'collector') {
+        router.replace('/(collector-tabs)');
+      } else if (role === 'vendor') {
+        router.replace('/(vendor-tabs)');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
@@ -55,6 +71,36 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           <Text style={styles.welcomeText}>Welcome Back!</Text>
+
+          {/* Role Selection */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Login as</Text>
+            <View style={styles.roleSelector}>
+              {roles.map((r) => (
+                <TouchableOpacity
+                  key={r.value}
+                  style={[
+                    styles.roleButton,
+                    role === r.value && { 
+                      backgroundColor: r.color,
+                      borderColor: r.color 
+                    },
+                  ]}
+                  onPress={() => setRole(r.value)}
+                >
+                  <Text style={styles.roleIcon}>{r.icon}</Text>
+                  <Text
+                    style={[
+                      styles.roleButtonText,
+                      role === r.value && styles.roleButtonTextActive,
+                    ]}
+                  >
+                    {r.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
@@ -81,7 +127,11 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[
+              styles.button, 
+              { backgroundColor: roles.find(r => r.value === role)?.color || COLORS.primary },
+              loading && styles.buttonDisabled
+            ]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -93,9 +143,11 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.linkText}>Sign Up</Text>
+            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/(auth)/select-role')}>
+              <Text style={[styles.linkText, { color: roles.find(r => r.value === role)?.color }]}>
+                Sign Up
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -156,6 +208,31 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: COLORS.dark,
   },
+  roleSelector: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roleButton: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: COLORS.light,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+  },
+  roleIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  roleButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.dark,
+  },
+  roleButtonTextActive: {
+    color: COLORS.white,
+  },
   input: {
     borderWidth: 1,
     borderColor: COLORS.light,
@@ -165,7 +242,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   button: {
-    backgroundColor: COLORS.primary,
     padding: 16,
     borderRadius: 10,
     alignItems: 'center',
@@ -189,7 +265,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   linkText: {
-    color: COLORS.primary,
     fontSize: 14,
     fontWeight: 'bold',
   },

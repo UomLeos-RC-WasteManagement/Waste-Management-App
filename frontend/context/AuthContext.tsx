@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await AsyncStorage.multiSet([
           [STORAGE_KEYS.TOKEN, authToken],
           [STORAGE_KEYS.USER, JSON.stringify(data)],
-          [STORAGE_KEYS.USER_ROLE, 'user'],
+          [STORAGE_KEYS.USER_ROLE, userData.role || 'user'],
         ]);
 
         setToken(authToken);

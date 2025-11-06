@@ -9,7 +9,12 @@ const {
   getRedemptions,
   verifyRedemption,
   getAnalytics,
-  updateProfile
+  updateProfile,
+  getOffers,
+  purchaseWaste,
+  getVendorInventory,
+  getPricing,
+  updatePricing
 } = require('../controllers/vendorController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -17,14 +22,32 @@ const { protect, authorize } = require('../middleware/auth');
 router.use(protect);
 router.use(authorize('vendor'));
 
+// Dashboard
 router.get('/dashboard', getDashboard);
+
+// Rewards (for users)
 router.post('/rewards', createReward);
 router.get('/rewards', getMyRewards);
 router.put('/rewards/:id', updateReward);
 router.delete('/rewards/:id', deleteReward);
+
+// Redemptions
 router.get('/redemptions', getRedemptions);
 router.post('/redemptions/:code/verify', verifyRedemption);
+
+// Analytics
 router.get('/analytics', getAnalytics);
+
+// Profile
 router.put('/profile', updateProfile);
+
+// Marketplace - Buy waste from collectors
+router.get('/offers', getOffers); // Browse available waste from collectors
+router.post('/purchase', purchaseWaste); // Purchase waste from collector
+router.get('/inventory', getVendorInventory); // View purchased waste inventory
+
+// Pricing
+router.get('/pricing', getPricing);
+router.put('/pricing', updatePricing);
 
 module.exports = router;
