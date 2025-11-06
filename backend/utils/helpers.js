@@ -1,5 +1,5 @@
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 // Generate QR Code for user
 exports.generateUserQRCode = async (userId) => {
@@ -19,9 +19,9 @@ exports.generateUserQRCode = async (userId) => {
   }
 };
 
-// Generate unique redemption code
+// Generate unique redemption code using crypto (built-in Node.js)
 exports.generateRedemptionCode = () => {
-  return uuidv4().split('-')[0].toUpperCase();
+  return crypto.randomBytes(4).toString('hex').toUpperCase();
 };
 
 // Generate QR Code for reward redemption
