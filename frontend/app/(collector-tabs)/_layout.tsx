@@ -1,9 +1,8 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { COLORS } from '@/constants/config';
 
-export default function TabLayout() {
+export default function CollectorTabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -14,29 +13,42 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E0E0E0',
-          paddingBottom: 5,
           height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
-      }}>
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Dashboard',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="scan"
         options={{
-          title: 'Map',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
+          title: 'Scan QR',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="rewards"
+        name="inventory"
         options={{
-          title: 'Rewards',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gift.fill" color={color} />,
+          title: 'Inventory',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="archivebox.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="vendors"
+        options={{
+          title: 'Vendors',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="building.2.fill" color={color} />,
         }}
       />
       <Tabs.Screen
