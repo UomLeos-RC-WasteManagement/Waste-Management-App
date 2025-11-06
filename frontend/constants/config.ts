@@ -1,5 +1,8 @@
 // API Configuration
-export const API_URL = 'http://localhost:3000/api';
+// Use deployed backend on Vercel
+export const API_URL = 'https://waste-management-app-five.vercel.app/api';
+// For local development, uncomment the line below:
+// export const API_URL = 'http://localhost:3000/api';
 
 // API Endpoints
 export const ENDPOINTS = {

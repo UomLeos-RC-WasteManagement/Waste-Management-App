@@ -67,14 +67,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string, role: string) => {
     try {
+      console.log('🔐 Login attempt started');
+      console.log('📧 Email:', email);
+      console.log('👤 Role:', role);
+      console.log('🌐 API URL:', ENDPOINTS.LOGIN);
+      
       const response: any = await api.post(ENDPOINTS.LOGIN, {
         email,
         password,
         role,
       });
 
+      console.log('📥 Response received:', JSON.stringify(response, null, 2));
+
       if (response.success) {
+        console.log('✅ Login successful');
+        // api.ts interceptor already returns response.data, so response is the whole object
         const { data, token: authToken } = response;
+        
+        console.log('💾 Saving to AsyncStorage...');
+        console.log('🔑 Token:', authToken?.substring(0, 20) + '...');
+        console.log('👤 User data:', JSON.stringify(data, null, 2));
         
         await AsyncStorage.multiSet([
           [STORAGE_KEYS.TOKEN, authToken],
@@ -84,18 +97,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setToken(authToken);
         setUser(data);
+        console.log('✅ Login process completed successfully');
+      } else {
+        console.log('❌ Login failed - response.success is false');
+        console.log('📝 Error message:', response.message);
+        throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
+      console.log('❌ Login error caught:', error);
+      console.log('📝 Error message:', error.message);
+      console.log('📝 Full error:', JSON.stringify(error, null, 2));
       throw new Error(error.message || 'Login failed');
     }
   };
 
   const register = async (userData: any) => {
     try {
+      console.log('📝 Registration attempt started');
+      console.log('👤 User data:', JSON.stringify(userData, null, 2));
+      console.log('🌐 API URL:', ENDPOINTS.REGISTER);
+      
       const response: any = await api.post(ENDPOINTS.REGISTER, userData);
 
+      console.log('📥 Response received:', JSON.stringify(response, null, 2));
+
       if (response.success) {
+        console.log('✅ Registration successful');
+        // api.ts interceptor already returns response.data, so response is the whole object
         const { data, token: authToken } = response;
+        
+        console.log('💾 Saving to AsyncStorage...');
+        console.log('🔑 Token:', authToken?.substring(0, 20) + '...');
+        console.log('👤 User data:', JSON.stringify(data, null, 2));
         
         await AsyncStorage.multiSet([
           [STORAGE_KEYS.TOKEN, authToken],
@@ -105,8 +138,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setToken(authToken);
         setUser(data);
+        console.log('✅ Registration process completed successfully');
+      } else {
+        console.log('❌ Registration failed - response.success is false');
+        console.log('📝 Error message:', response.message);
+        throw new Error(response.message || 'Registration failed');
       }
     } catch (error: any) {
+      console.log('❌ Registration error caught:', error);
+      console.log('📝 Error message:', error.message);
+      console.log('📝 Full error:', JSON.stringify(error, null, 2));
       throw new Error(error.message || 'Registration failed');
     }
   };

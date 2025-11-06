@@ -33,26 +33,45 @@ export default function LoginScreen() {
   ];
 
   const handleLogin = async () => {
+    console.log('🚀 handleLogin called');
+    console.log('📧 Email input:', email);
+    console.log('🔒 Password length:', password.length);
+    console.log('👤 Selected role:', role);
+    
     if (!email || !password) {
+      console.log('⚠️ Validation failed: Missing email or password');
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    console.log('✅ Validation passed, starting login...');
     setLoading(true);
     try {
-      await login(email.toLowerCase().trim(), password, role);
+      const processedEmail = email.toLowerCase().trim();
+      console.log('📧 Processed email:', processedEmail);
+      
+      await login(processedEmail, password, role);
+      
+      console.log('✅ Login successful, navigating to role-specific screen...');
       
       // Navigate based on role
       if (role === 'collector') {
+        console.log('🚛 Navigating to collector tabs');
         router.replace('/(collector-tabs)');
       } else if (role === 'vendor') {
+        console.log('🏭 Navigating to vendor tabs');
         router.replace('/(vendor-tabs)');
       } else {
+        console.log('👤 Navigating to user tabs');
         router.replace('/(tabs)');
       }
     } catch (error: any) {
+      console.log('❌ Login failed in handleLogin');
+      console.log('📝 Error:', error);
+      console.log('📝 Error message:', error.message);
       Alert.alert('Login Failed', error.message || 'Invalid credentials');
     } finally {
+      console.log('🏁 Login process finished, setting loading to false');
       setLoading(false);
     }
   };
