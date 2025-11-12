@@ -171,11 +171,7 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <View style={styles.demoSection}>
-          <Text style={styles.demoTitle}>Demo Accounts:</Text>
-          <Text style={styles.demoText}>Email: alice@example.com</Text>
-          <Text style={styles.demoText}>Password: user123</Text>
-        </View>
+        
       </ScrollView>
     </KeyboardAvoidingView>
   );
