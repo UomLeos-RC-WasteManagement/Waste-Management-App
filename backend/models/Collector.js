@@ -83,7 +83,7 @@ const collectorSchema = new mongoose.Schema({
   },
   isVerified: {
     type: Boolean,
-    default: false
+    default: true // Set to true for development; change to false for production
   },
   verifiedBy: {
     type: mongoose.Schema.Types.ObjectId,

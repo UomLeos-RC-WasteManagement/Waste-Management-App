@@ -63,9 +63,13 @@ exports.getDashboard = async (req, res) => {
 // @access  Private (User)
 exports.getNearbyCollectors = async (req, res) => {
   try {
+    console.log('🗺️ getNearbyCollectors controller called');
+    console.log('🗺️ Query params:', req.query);
+    
     const { longitude, latitude, maxDistance = 10000, wasteType } = req.query;
 
     if (!longitude || !latitude) {
+      console.log('❌ Missing longitude or latitude');
       return res.status(400).json({
         success: false,
         message: 'Please provide longitude and latitude'
@@ -91,7 +95,13 @@ exports.getNearbyCollectors = async (req, res) => {
       query.acceptedWasteTypes = wasteType;
     }
 
+    console.log('🗺️ Query object:', JSON.stringify(query, null, 2));
+    console.log('🗺️ Fetching collectors from database...');
+
     const collectors = await Collector.find(query).select('-password');
+
+    console.log('🗺️ Collectors found:', collectors.length);
+    console.log('🗺️ Sending response...');
 
     res.status(200).json({
       success: true,
@@ -99,6 +109,7 @@ exports.getNearbyCollectors = async (req, res) => {
       data: collectors
     });
   } catch (error) {
+    console.error('❌ Error in getNearbyCollectors:', error);
     res.status(500).json({
       success: false,
       message: error.message

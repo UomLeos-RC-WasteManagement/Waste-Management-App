@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { COLORS } from '@/constants/config';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS } from '@/constants/config';
 
 export default function CollectorDashboard() {
   const router = useRouter();
@@ -21,19 +22,21 @@ export default function CollectorDashboard() {
 
   const fetchStats = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('📊 Fetching collector dashboard...');
+      const response: any = await api.get(ENDPOINTS.COLLECTOR_DASHBOARD);
       
-      setStats({
-        todayCollections: 15,
-        todayWeight: 125.5,
-        weeklyWeight: 456.2,
-        monthlyWeight: 1850.0,
-        totalEarnings: 125000,
-        pendingInventory: 234.5,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.log('📥 Dashboard response:', response);
+      
+      if (response.success && response.data) {
+        setStats(response.data);
+        console.log('✅ Loaded collector stats');
+      } else {
+        console.log('⚠️ No stats data available');
+        setStats(null);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching stats:', error);
+      setStats(null);
     } finally {
       setLoading(false);
       setRefreshing(false);

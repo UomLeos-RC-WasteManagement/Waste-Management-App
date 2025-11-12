@@ -4,13 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { COLORS, WASTE_TYPES } from '@/constants/config';
+import { COLORS, WASTE_TYPES, ENDPOINTS } from '@/constants/config';
+import api from '@/services/api';
 
-export default function CollectorInventoryScreen() {
+export default function VendorInventoryScreen() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,18 +21,17 @@ export default function CollectorInventoryScreen() {
 
   const fetchInventory = async () => {
     try {
-      // TODO: Replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('📦 Fetching vendor inventory...');
+      const response: any = await api.get(ENDPOINTS.VENDOR_INVENTORY);
+      console.log('📦📥 Vendor inventory response:', response);
       
-      setInventory([
-        { type: 'E-waste', weight: 45.5, collections: 12 },
-        { type: 'Plastic', weight: 123.2, collections: 34 },
-        { type: 'Paper', weight: 67.8, collections: 21 },
-        { type: 'Metal', weight: 34.1, collections: 8 },
-        { type: 'Glass', weight: 28.5, collections: 15 },
-      ]);
+      if (response.success) {
+        setInventory(response.data.inventory || response.data || []);
+        console.log('📦✅ Vendor inventory loaded:', response.data);
+      }
     } catch (error) {
-      console.error('Error fetching inventory');
+      console.error('📦❌ Error fetching vendor inventory:', error);
+      setInventory([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -45,7 +44,10 @@ export default function CollectorInventoryScreen() {
   };
 
   const getTotalWeight = () => {
-    return inventory.reduce((sum, item) => sum + item.weight, 0).toFixed(1);
+    if (!Array.isArray(inventory) || inventory.length === 0) {
+      return '0.0';
+    }
+    return inventory.reduce((sum, item) => sum + (item.weight || item.totalQuantity || 0), 0).toFixed(1);
   };
 
   if (loading) {
@@ -72,23 +74,35 @@ export default function CollectorInventoryScreen() {
       </View>
 
       <View style={styles.inventoryList}>
-        {inventory.map((item, index) => {
-          const wasteInfo = WASTE_TYPES.find(w => w.value === item.type);
-          return (
-            <View key={index} style={styles.inventoryCard}>
-              <Text style={styles.inventoryIcon}>{wasteInfo?.icon || '♻️'}</Text>
-              <View style={styles.inventoryInfo}>
-                <Text style={styles.inventoryType}>{item.type}</Text>
-                <Text style={styles.inventoryCollections}>
-                  {item.collections} collections
-                </Text>
+        {Array.isArray(inventory) && inventory.length > 0 ? (
+          inventory.map((item, index) => {
+            const wasteType = item.type || item.wasteType;
+            const wasteInfo = WASTE_TYPES.find(w => w.value === wasteType);
+            const weight = item.weight || item.totalQuantity || 0;
+            const collections = item.collections || item.transactions || 0;
+            
+            return (
+              <View key={index} style={styles.inventoryCard}>
+                <Text style={styles.inventoryIcon}>{wasteInfo?.icon || '♻️'}</Text>
+                <View style={styles.inventoryInfo}>
+                  <Text style={styles.inventoryType}>{wasteType}</Text>
+                  <Text style={styles.inventoryCollections}>
+                    {collections} {collections === 1 ? 'collection' : 'collections'}
+                  </Text>
+                </View>
+                <View style={styles.inventoryWeight}>
+                  <Text style={styles.inventoryWeightValue}>{weight} kg</Text>
+                </View>
               </View>
-              <View style={styles.inventoryWeight}>
-                <Text style={styles.inventoryWeightValue}>{item.weight} kg</Text>
-              </View>
-            </View>
-          );
-        })}
+            );
+          })
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyText}>No inventory yet</Text>
+            <Text style={styles.emptySubtext}>Start collecting waste to build your inventory</Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );

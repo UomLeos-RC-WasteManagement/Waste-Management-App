@@ -8,9 +8,13 @@ const Admin = require('../models/Admin');
 exports.protect = async (req, res, next) => {
   let token;
 
+  console.log('🔐 Auth middleware - Headers:', req.headers.authorization);
+
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
   }
+
+  console.log('🔐 Token extracted:', token ? 'Yes' : 'No');
 
   if (!token) {
     return res.status(401).json({
@@ -21,12 +25,14 @@ exports.protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('🔐 Token decoded:', decoded);
     
     // Find user based on role
     let user;
     switch (decoded.role) {
       case 'user':
         user = await User.findById(decoded.id).select('-password');
+        console.log('🔐 User found:', user ? 'Yes' : 'No');
         break;
       case 'collector':
         user = await Collector.findById(decoded.id).select('-password');
@@ -73,12 +79,17 @@ exports.protect = async (req, res, next) => {
 // Authorize specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
+    console.log('🔐 Authorize middleware - Required roles:', roles);
+    console.log('🔐 Authorize middleware - User role:', req.userRole);
+    
     if (!roles.includes(req.userRole)) {
+      console.log('❌ Authorization failed!');
       return res.status(403).json({
         success: false,
         message: `User role '${req.userRole}' is not authorized to access this route`
       });
     }
+    console.log('✅ Authorization passed! Moving to next middleware/controller');
     next();
   };
 };

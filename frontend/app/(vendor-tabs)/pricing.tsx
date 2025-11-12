@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,98 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { COLORS, WASTE_TYPES } from '@/constants/config';
+import { COLORS, WASTE_TYPES, ENDPOINTS } from '@/constants/config';
+import api from '@/services/api';
 
 export default function PricingScreen() {
-  const [pricing, setPricing] = useState<any>({
-    'E-waste': '150',
-    'Plastic': '40',
-    'Polythene': '35',
-    'Metal': '80',
-    'Glass': '20',
-    'Paper': '25',
-    'Organic': '15',
-  });
+  const [pricing, setPricing] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    Alert.alert('Success', 'Pricing updated successfully!');
+  useEffect(() => {
+    fetchPricing();
+  }, []);
+
+  const fetchPricing = async () => {
+    try {
+      console.log('💰 Fetching vendor pricing...');
+      const response: any = await api.get(ENDPOINTS.VENDOR_PRICING);
+      console.log('💰📥 Vendor pricing response:', response);
+      
+      if (response.success && response.data) {
+        // Convert array of pricing objects to a map
+        const pricingMap: any = {};
+        if (Array.isArray(response.data)) {
+          response.data.forEach((item: any) => {
+            pricingMap[item.wasteType] = item.pricePerKg.toString();
+          });
+        } else if (response.data.pricing) {
+          response.data.pricing.forEach((item: any) => {
+            pricingMap[item.wasteType] = item.pricePerKg.toString();
+          });
+        }
+        
+        // Fallback to default values for missing types
+        WASTE_TYPES.forEach(type => {
+          if (!pricingMap[type.value]) {
+            pricingMap[type.value] = '0';
+          }
+        });
+        
+        setPricing(pricingMap);
+        console.log('💰✅ Vendor pricing loaded:', pricingMap);
+      }
+    } catch (error) {
+      console.error('💰❌ Error fetching vendor pricing:', error);
+      // Set default pricing on error
+      const defaultPricing: any = {};
+      WASTE_TYPES.forEach(type => {
+        defaultPricing[type.value] = '0';
+      });
+      setPricing(defaultPricing);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      console.log('💰 Saving vendor pricing...');
+      
+      // Convert pricing map to array format
+      const pricingArray = Object.entries(pricing).map(([wasteType, price]) => ({
+        wasteType,
+        pricePerKg: parseFloat(price as string) || 0,
+      }));
+      
+      const response: any = await api.post(ENDPOINTS.VENDOR_PRICING, {
+        pricing: pricingArray,
+      });
+      
+      if (response.success) {
+        Alert.alert('Success', 'Pricing updated successfully!');
+        console.log('💰✅ Pricing saved successfully');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to update pricing');
+      }
+    } catch (error: any) {
+      console.error('💰❌ Error saving pricing:', error);
+      Alert.alert('Error', error.message || 'Failed to update pricing');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -54,8 +129,16 @@ export default function PricingScreen() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save Pricing</Text>
+      <TouchableOpacity 
+        style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+        onPress={handleSave}
+        disabled={saving}
+      >
+        {saving ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <Text style={styles.saveButtonText}>Save Pricing</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -63,6 +146,7 @@ export default function PricingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' },
   header: { backgroundColor: COLORS.primary, padding: 20, paddingTop: 60, paddingBottom: 30 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 5 },
   subtitle: { fontSize: 16, color: '#FFFFFF', opacity: 0.9 },
@@ -76,5 +160,6 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
   unit: { fontSize: 14, color: COLORS.gray, marginLeft: 8 },
   saveButton: { backgroundColor: COLORS.primary, margin: 20, padding: 18, borderRadius: 15, alignItems: 'center' },
+  saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });
