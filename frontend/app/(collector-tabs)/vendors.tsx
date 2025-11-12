@@ -8,8 +8,10 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
-import { COLORS } from '@/constants/config';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS } from '@/constants/config';
 
 export default function VendorsScreen() {
   const [vendors, setVendors] = useState<any[]>([]);
@@ -22,37 +24,22 @@ export default function VendorsScreen() {
 
   const fetchVendors = async () => {
     try {
-      // TODO: Replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('🏭 Fetching vendors...');
+      const response: any = await api.get(ENDPOINTS.COLLECTOR_VENDORS);
       
-      setVendors([
-        {
-          id: '1',
-          name: 'E-Waste Recycling Co.',
-          wasteTypes: ['E-waste', 'Metal'],
-          location: 'Colombo 05',
-          phone: '+94 77 111 2222',
-          pricePerKg: { 'E-waste': 150, 'Metal': 80 },
-        },
-        {
-          id: '2',
-          name: 'Plastic Solutions Ltd.',
-          wasteTypes: ['Plastic', 'Polythene'],
-          location: 'Dehiwala',
-          phone: '+94 77 222 3333',
-          pricePerKg: { 'Plastic': 40, 'Polythene': 35 },
-        },
-        {
-          id: '3',
-          name: 'Paper & Cardboard Recyclers',
-          wasteTypes: ['Paper'],
-          location: 'Nugegoda',
-          phone: '+94 77 333 4444',
-          pricePerKg: { 'Paper': 25 },
-        },
-      ]);
-    } catch (error) {
-      console.error('Error fetching vendors');
+      console.log('📥 Vendors response:', response);
+      
+      if (response.success && response.data) {
+        const vendorsData = response.data.vendors || response.data;
+        setVendors(vendorsData);
+        console.log('✅ Loaded vendors:', vendorsData.length, 'vendors');
+      } else {
+        console.log('⚠️ No vendors data available');
+        setVendors([]);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching vendors:', error);
+      setVendors([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

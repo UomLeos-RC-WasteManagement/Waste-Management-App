@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,29 +6,98 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
-import { COLORS } from '@/constants/config';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS } from '@/constants/config';
 
 export default function VendorOffersScreen() {
-  const [offers] = useState([
-    { id: '1', collector: 'Green Point Collector', type: 'E-waste', weight: 45, price: 6750 },
-    { id: '2', collector: 'Eco Waste Center', type: 'Plastic', weight: 120, price: 4800 },
-    { id: '3', collector: 'Recycling Hub', type: 'Paper', weight: 67, price: 1675 },
-  ]);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handlePurchase = (offer: any) => {
+  useEffect(() => {
+    fetchOffers();
+  }, []);
+
+  const fetchOffers = async () => {
+    try {
+      console.log('🛍️ Fetching waste offers...');
+      const response: any = await api.get(ENDPOINTS.VENDOR_OFFERS);
+      
+      console.log('📥 Offers response:', response);
+      
+      if (response.success && response.data) {
+        const offersData = response.data.offers || response.data;
+        setOffers(offersData);
+        console.log('✅ Loaded offers:', offersData.length, 'offers');
+      } else {
+        console.log('⚠️ No offers available');
+        setOffers([]);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching offers:', error);
+      setOffers([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchOffers();
+  };
+
+  const handlePurchase = async (offer: any) => {
     Alert.alert(
       'Purchase Waste',
       `Buy ${offer.weight}kg of ${offer.type} from ${offer.collector} for Rs. ${offer.price}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Purchase', onPress: () => Alert.alert('Success', 'Purchase completed!') },
+        {
+          text: 'Purchase',
+          onPress: async () => {
+            try {
+              console.log('💰 Purchasing waste...', offer.id);
+              const response: any = await api.post(ENDPOINTS.VENDOR_PURCHASE, {
+                offerId: offer.id,
+                collectorId: offer.collectorId,
+                wasteType: offer.type,
+                weight: offer.weight,
+                price: offer.price,
+              });
+              
+              if (response.success) {
+                Alert.alert('Success', 'Purchase completed!');
+                fetchOffers(); // Refresh the list
+              } else {
+                Alert.alert('Error', response.message || 'Purchase failed');
+              }
+            } catch (error: any) {
+              console.error('❌ Purchase error:', error);
+              Alert.alert('Error', error.message || 'Purchase failed');
+            }
+          },
+        },
       ]
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Waste Offers</Text>
         <Text style={styles.subtitle}>Buy waste from collectors</Text>
@@ -62,6 +131,7 @@ export default function VendorOffersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' },
   header: { backgroundColor: COLORS.primary, padding: 20, paddingTop: 60, paddingBottom: 30 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 5 },
   subtitle: { fontSize: 16, color: '#FFFFFF', opacity: 0.9 },

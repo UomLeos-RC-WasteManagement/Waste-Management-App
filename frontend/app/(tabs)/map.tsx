@@ -7,8 +7,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
-import { COLORS } from '@/constants/config';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS } from '@/constants/config';
 
 export default function MapScreen() {
   const [collectors, setCollectors] = useState<any[]>([]);
@@ -28,62 +30,68 @@ export default function MapScreen() {
 
   useEffect(() => {
     fetchCollectors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedType]);
 
   const fetchCollectors = async () => {
     setLoading(true);
     try {
-      // Simulate API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('🗺️ Fetching collection points...');
       
-      // Mock data
-      const mockCollectors = [
-        {
-          id: '1',
-          name: 'Green Point Collector',
-          location: 'Colombo 07',
-          wasteTypes: ['Plastic', 'Paper', 'Glass'],
-          operatingHours: '8:00 AM - 6:00 PM',
-          phone: '+94 77 123 4567',
-          distance: '1.2 km',
-        },
-        {
-          id: '2',
-          name: 'Eco Waste Center',
-          location: 'Dehiwala',
-          wasteTypes: ['E-waste', 'Metal', 'Plastic'],
-          operatingHours: '9:00 AM - 5:00 PM',
-          phone: '+94 77 234 5678',
-          distance: '2.5 km',
-        },
-        {
-          id: '3',
-          name: 'Recycling Hub',
-          location: 'Mount Lavinia',
-          wasteTypes: ['Organic', 'Paper', 'Polythene'],
-          operatingHours: '7:00 AM - 7:00 PM',
-          phone: '+94 77 345 6789',
-          distance: '3.8 km',
-        },
-      ];
-
-      if (selectedType === 'all') {
-        setCollectors(mockCollectors);
+      // Default location (Colombo, Sri Lanka) - can be replaced with user's actual location
+      const userLongitude = 79.8612;
+      const userLatitude = 6.9271;
+      
+      // Add query parameters for longitude and latitude
+      const response: any = await api.get(
+        `${ENDPOINTS.COLLECTION_POINTS}?longitude=${userLongitude}&latitude=${userLatitude}`
+      );
+      
+      console.log('📥 Collection points response:', response);
+      
+      if (response.success && response.data) {
+        let collectionPoints = response.data;
+        
+        // Filter by selected waste type
+        if (selectedType !== 'all') {
+          collectionPoints = collectionPoints.filter((c: any) => 
+            c.acceptedWasteTypes && c.acceptedWasteTypes.includes(selectedType)
+          );
+        }
+        
+        // Transform data to match component structure
+        const formattedCollectors = collectionPoints.map((point: any) => ({
+          id: point._id,
+          name: point.name,
+          location: `${point.address?.city || 'Unknown'}, ${point.address?.street || ''}`,
+          wasteTypes: point.acceptedWasteTypes || [],
+          operatingHours: point.operatingHours || 'Not specified',
+          phone: point.phone || 'Not available',
+          distance: point.distance ? `${point.distance.toFixed(1)} km` : '—',
+          coordinates: point.location?.coordinates,
+        }));
+        
+        setCollectors(formattedCollectors);
+        console.log('✅ Loaded', formattedCollectors.length, 'collection points');
       } else {
-        const filtered = mockCollectors.filter(c => 
-          c.wasteTypes.includes(selectedType)
-        );
-        setCollectors(filtered);
+        console.log('⚠️ No collection points found');
+        setCollectors([]);
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to fetch collectors');
+    } catch (error: any) {
+      console.error('❌ Error fetching collectors:', error);
+      Alert.alert('Error', 'Failed to fetch collection points. Please try again.');
+      setCollectors([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCallCollector = (phone: string) => {
-    Alert.alert('Call Collector', `Would you like to call ${phone}?`);
+    if (phone && phone !== 'Not available') {
+      Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert('Unavailable', 'Phone number not available for this collector');
+    }
   };
 
   return (

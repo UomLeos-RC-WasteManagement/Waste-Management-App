@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { COLORS } from '@/constants/config';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS } from '@/constants/config';
 
 export default function VendorDashboard() {
   const router = useRouter();
@@ -21,19 +22,21 @@ export default function VendorDashboard() {
 
   const fetchStats = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('📊 Fetching vendor dashboard...');
+      const response: any = await api.get(ENDPOINTS.VENDOR_DASHBOARD);
       
-      setStats({
-        todayPurchases: 8,
-        todayWeight: 245.5,
-        weeklyWeight: 1456.2,
-        monthlyWeight: 5850.0,
-        totalSpent: 425000,
-        currentInventory: 1234.5,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.log('📥 Dashboard response:', response);
+      
+      if (response.success && response.data) {
+        setStats(response.data);
+        console.log('✅ Loaded vendor stats');
+      } else {
+        console.log('⚠️ No stats data available');
+        setStats(null);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching stats:', error);
+      setStats(null);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -1,5 +1,6 @@
 const Collector = require('../models/Collector');
 const User = require('../models/User');
+const Vendor = require('../models/Vendor');
 const WasteTransaction = require('../models/WasteTransaction');
 const Badge = require('../models/Badge');
 const { calculatePoints, checkBadgeEligibility } = require('../utils/helpers');

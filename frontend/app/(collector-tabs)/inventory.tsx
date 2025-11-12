@@ -8,7 +8,8 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { COLORS, WASTE_TYPES } from '@/constants/config';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS, WASTE_TYPES } from '@/constants/config';
 
 export default function CollectorInventoryScreen() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -21,18 +22,23 @@ export default function CollectorInventoryScreen() {
 
   const fetchInventory = async () => {
     try {
-      // TODO: Replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('📦 Fetching collector inventory...');
+      const response: any = await api.get(ENDPOINTS.COLLECTOR_INVENTORY);
       
-      setInventory([
-        { type: 'E-waste', weight: 45.5, collections: 12 },
-        { type: 'Plastic', weight: 123.2, collections: 34 },
-        { type: 'Paper', weight: 67.8, collections: 21 },
-        { type: 'Metal', weight: 34.1, collections: 8 },
-        { type: 'Glass', weight: 28.5, collections: 15 },
-      ]);
-    } catch (error) {
-      console.error('Error fetching inventory');
+      console.log('📥 Inventory response:', response);
+      
+      if (response.success && response.data) {
+        // Transform data if needed
+        const inventoryData = response.data.inventory || response.data;
+        setInventory(inventoryData);
+        console.log('✅ Loaded inventory:', inventoryData.length, 'items');
+      } else {
+        console.log('⚠️ No inventory data available');
+        setInventory([]);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching inventory:', error);
+      setInventory([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

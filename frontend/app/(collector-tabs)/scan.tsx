@@ -10,11 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { COLORS, WASTE_TYPES, POINTS_PER_KG } from '@/constants/config';
-import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
+import { ENDPOINTS, COLORS, WASTE_TYPES, POINTS_PER_KG } from '@/constants/config';
 
 export default function ScanQRScreen() {
-  const { user } = useAuth();
   const [userQR, setUserQR] = useState('');
   const [scannedUser, setScannedUser] = useState<any>(null);
   const [weight, setWeight] = useState('');
@@ -29,18 +28,33 @@ export default function ScanQRScreen() {
 
     setLoading(true);
     try {
-      // TODO: Replace with actual API call to verify user
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('🔍 Looking up user with QR:', userQR);
       
-      // Mock user data
-      setScannedUser({
-        _id: userQR,
-        name: 'John Doe',
-        email: 'john@example.com',
-        points: 450,
-        qrCode: userQR,
-      });
-    } catch (error) {
+      // Try to extract user ID from QR code
+      // QR code might be in format: { userId: "xxx", type: "user", timestamp: xxx }
+      try {
+        const qrData = JSON.parse(userQR);
+        if (qrData.userId) {
+          console.log('📱 Extracted user ID from QR:', qrData.userId);
+          // TODO: Use this userId when backend endpoint is available
+        }
+      } catch {
+        // QR code is just the user ID
+        console.log('📱 QR code is plain user ID');
+      }
+      
+      // For now, use the collector's verify endpoint or dashboard to find users
+      // Since we don't have a direct user lookup endpoint, we'll need to add one
+      // TODO: Backend needs GET /api/users/:id endpoint
+      
+      // Temporary: Show error that this feature needs backend support
+      Alert.alert(
+        'Feature Update Needed',
+        'QR code scanning requires additional backend endpoint. Please manually enter user email or ID.',
+      );
+      setScannedUser(null);
+    } catch (error: any) {
+      console.error('❌ Error finding user:', error);
       Alert.alert('Error', 'Failed to find user. Please check the QR code.');
       setScannedUser(null);
     } finally {
@@ -65,7 +79,7 @@ export default function ScanQRScreen() {
     }
 
     const weightValue = parseFloat(weight);
-    const points = Math.round(weightValue * (POINTS_PER_KG[selectedWasteType] || 0));
+    const points = Math.round(weightValue * (POINTS_PER_KG[selectedWasteType as keyof typeof POINTS_PER_KG] || 0));
 
     Alert.alert(
       'Confirm Collection',
@@ -77,27 +91,40 @@ export default function ScanQRScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              // TODO: API call to record transaction
-              await new Promise(resolve => setTimeout(resolve, 500));
+              console.log('📝 Recording collection...');
               
-              Alert.alert(
-                'Success!',
-                `Collection recorded successfully!\n\n${scannedUser.name} earned ${points} points`,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => {
-                      // Reset form
-                      setUserQR('');
-                      setScannedUser(null);
-                      setWeight('');
-                      setSelectedWasteType('');
+              const response: any = await api.post(ENDPOINTS.COLLECTOR_RECORD_COLLECTION, {
+                userId: scannedUser._id,
+                wasteType: selectedWasteType,
+                weight: weightValue,
+                points: points,
+              });
+              
+              console.log('✅ Collection recorded:', response);
+              
+              if (response.success) {
+                Alert.alert(
+                  'Success!',
+                  `Collection recorded successfully!\n\n${scannedUser.name} earned ${points} points`,
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => {
+                        // Reset form
+                        setUserQR('');
+                        setScannedUser(null);
+                        setWeight('');
+                        setSelectedWasteType('');
+                      },
                     },
-                  },
-                ]
-              );
-            } catch (error) {
-              Alert.alert('Error', 'Failed to record collection');
+                  ]
+                );
+              } else {
+                Alert.alert('Error', response.message || 'Failed to record collection');
+              }
+            } catch (error: any) {
+              console.error('❌ Error recording collection:', error);
+              Alert.alert('Error', error.message || 'Failed to record collection');
             } finally {
               setLoading(false);
             }
@@ -174,7 +201,7 @@ export default function ScanQRScreen() {
                       <Text style={styles.wasteTypeIcon}>{type.icon}</Text>
                       <Text style={styles.wasteTypeLabel}>{type.label}</Text>
                       <Text style={styles.wasteTypePoints}>
-                        {POINTS_PER_KG[type.value]} pts/kg
+                        {POINTS_PER_KG[type.value as keyof typeof POINTS_PER_KG]} pts/kg
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -195,7 +222,7 @@ export default function ScanQRScreen() {
                 {weight && selectedWasteType && (
                   <View style={styles.pointsPreview}>
                     <Text style={styles.pointsPreviewText}>
-                      User will earn: {Math.round(parseFloat(weight || '0') * (POINTS_PER_KG[selectedWasteType] || 0))} points
+                      User will earn: {Math.round(parseFloat(weight || '0') * (POINTS_PER_KG[selectedWasteType as keyof typeof POINTS_PER_KG] || 0))} points
                     </Text>
                   </View>
                 )}
