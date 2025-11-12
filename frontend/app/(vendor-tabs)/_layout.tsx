@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { COLORS } from '@/constants/config';
 
@@ -13,14 +14,15 @@ export default function VendorTabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E0E0E0',
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 85 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
         },
+        animation: 'shift', // Smooth tab transition
       }}
     >
       <Tabs.Screen
