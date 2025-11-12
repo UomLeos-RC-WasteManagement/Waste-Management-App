@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { COLORS, WASTE_TYPES } from '@/constants/config';
+import { COLORS } from '@/constants/config';
 
 type Role = 'user' | 'collector' | 'vendor';
 
@@ -48,6 +48,14 @@ export default function RegisterScreen() {
     acceptedWasteTypes: [] as string[],
     operatingHours: '',
     description: '',
+    // Address (for collector)
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    // Location (for collector)
+    latitude: '',
+    longitude: '',
     // Vendor specific
     businessType: '',
     website: '',
@@ -88,9 +96,19 @@ export default function RegisterScreen() {
     }
 
     // Role-specific validation
-    if (role === 'collector' && formData.acceptedWasteTypes.length === 0) {
-      Alert.alert('Error', 'Please select at least one waste type you accept');
-      return;
+    if (role === 'collector') {
+      if (formData.acceptedWasteTypes.length === 0) {
+        Alert.alert('Error', 'Please select at least one waste type you accept');
+        return;
+      }
+      if (!formData.street || !formData.city) {
+        Alert.alert('Error', 'Please enter your collection point address');
+        return;
+      }
+      if (!formData.latitude || !formData.longitude) {
+        Alert.alert('Error', 'Please provide your location coordinates');
+        return;
+      }
     }
 
     if (role === 'vendor' && !formData.businessType) {
@@ -113,6 +131,16 @@ export default function RegisterScreen() {
         registrationData.acceptedWasteTypes = formData.acceptedWasteTypes;
         registrationData.operatingHours = formData.operatingHours;
         registrationData.description = formData.description;
+        registrationData.address = {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+        };
+        registrationData.location = {
+          type: 'Point',
+          coordinates: [parseFloat(formData.longitude), parseFloat(formData.latitude)], // [longitude, latitude]
+        };
       } else if (role === 'vendor') {
         registrationData.businessType = formData.businessType;
         registrationData.description = formData.description;
@@ -262,6 +290,73 @@ export default function RegisterScreen() {
                 />
               </View>
 
+              <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Location & Address</Text>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Street Address *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="123 Main Street"
+                  value={formData.street}
+                  onChangeText={(value) => handleChange('street', value)}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>City *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Colombo"
+                  value={formData.city}
+                  onChangeText={(value) => handleChange('city', value)}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+                  <Text style={styles.label}>State/Province</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Western"
+                    value={formData.state}
+                    onChangeText={(value) => handleChange('state', value)}
+                  />
+                </View>
+
+                <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
+                  <Text style={styles.label}>Zip/Postal Code</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="00100"
+                    value={formData.zipCode}
+                    onChangeText={(value) => handleChange('zipCode', value)}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Location Coordinates *</Text>
+                <View style={styles.row}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginRight: 8 }]}
+                    placeholder="Latitude (e.g., 6.9271)"
+                    value={formData.latitude}
+                    onChangeText={(value) => handleChange('latitude', value)}
+                    keyboardType="decimal-pad"
+                  />
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginLeft: 8 }]}
+                    placeholder="Longitude (e.g., 79.8612)"
+                    value={formData.longitude}
+                    onChangeText={(value) => handleChange('longitude', value)}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <Text style={styles.helpText}>
+                  💡 Tip: Use Google Maps to find your exact coordinates
+                </Text>
+              </View>
+
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Description</Text>
                 <TextInput
@@ -283,12 +378,33 @@ export default function RegisterScreen() {
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Business Type *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g., Recycling Plant, Waste Processing"
-                  value={formData.businessType}
-                  onChangeText={(value) => handleChange('businessType', value)}
-                />
+                <View style={styles.businessTypeContainer}>
+                  {['Physical Store', 'Online', 'Both'].map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.businessTypeButton,
+                        formData.businessType === type && {
+                          backgroundColor: roleConfig.color,
+                          borderColor: roleConfig.color,
+                        },
+                      ]}
+                      onPress={() => handleChange('businessType', type)}
+                    >
+                      <Text
+                        style={[
+                          styles.businessTypeText,
+                          formData.businessType === type && styles.businessTypeTextActive,
+                        ]}
+                      >
+                        {type === 'Physical Store' && '🏪 '}
+                        {type === 'Online' && '🌐 '}
+                        {type === 'Both' && '🏪🌐 '}
+                        {type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
 
               <View style={styles.inputContainer}>
@@ -460,6 +576,36 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  helpText: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  businessTypeContainer: {
+    gap: 12,
+  },
+  businessTypeButton: {
+    borderWidth: 2,
+    borderColor: COLORS.light,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+  },
+  businessTypeText: {
+    fontSize: 16,
+    color: COLORS.dark,
+    fontWeight: '600',
+  },
+  businessTypeTextActive: {
+    color: COLORS.white,
     fontWeight: 'bold',
   },
 });

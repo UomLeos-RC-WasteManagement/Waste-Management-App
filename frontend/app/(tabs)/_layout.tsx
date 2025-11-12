@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { COLORS } from '@/constants/config';
 
@@ -14,9 +15,10 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E0E0E0',
-          paddingBottom: 5,
-          height: 60,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
+          height: Platform.OS === 'ios' ? 85 : 60,
         },
+        animation: 'shift', // Smooth tab transition
       }}>
       <Tabs.Screen
         name="index"
