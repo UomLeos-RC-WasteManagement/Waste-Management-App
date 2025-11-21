@@ -1,53 +1,157 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { COLORS } from '@/constants/config';
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform, View, Text, StyleSheet } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { COLORS } from "@/constants/config";
+
+// Custom Tab Button Component
+function CustomTabButton({
+  iconName,
+  label,
+  color,
+  focused,
+}: {
+  iconName: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <View style={styles.tabButton}>
+      <View
+        style={[styles.iconContainer, focused && styles.iconContainerActive]}
+      >
+        <MaterialIcons name={iconName} size={26} color={color} />
+      </View>
+      <Text
+        style={[styles.tabLabel, { color }, focused && styles.tabLabelActive]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.gray,
+        tabBarInactiveTintColor: "#9E9E9E",
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E0E0E0',
-          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
-          height: Platform.OS === 'ios' ? 85 : 60,
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 0,
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          paddingBottom: Platform.OS === "ios" ? 20 : 10,
+          paddingTop: 10,
+          height: Platform.OS === "ios" ? 90 : 70,
         },
-        animation: 'shift', // Smooth tab transition
-      }}>
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+        },
+        tabBarItemStyle: {
+          paddingVertical: 5,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <CustomTabButton
+              iconName="home"
+              label="Home"
+              color={color}
+              focused={focused}
+            />
+          ),
+          tabBarLabel: () => null,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Map',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
+          title: "Map",
+          tabBarIcon: ({ color, focused }) => (
+            <CustomTabButton
+              iconName="map"
+              label="Map"
+              color={color}
+              focused={focused}
+            />
+          ),
+          tabBarLabel: () => null,
         }}
       />
       <Tabs.Screen
         name="rewards"
         options={{
-          title: 'Rewards',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gift.fill" color={color} />,
+          title: "Rewards",
+          tabBarIcon: ({ color, focused }) => (
+            <CustomTabButton
+              iconName="card-giftcard"
+              label="Rewards"
+              color={color}
+              focused={focused}
+            />
+          ),
+          tabBarLabel: () => null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <CustomTabButton
+              iconName="person"
+              label="Profile"
+              color={color}
+              focused={focused}
+            />
+          ),
+          tabBarLabel: () => null,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 5,
+    flex: 1,
+    minWidth: 60,
+  },
+  iconContainer: {
+    width: 50,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  iconContainerActive: {
+    backgroundColor: "rgba(76, 175, 80, 0.1)",
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 2,
+  },
+  tabLabelActive: {
+    fontWeight: "700",
+  },
+});
