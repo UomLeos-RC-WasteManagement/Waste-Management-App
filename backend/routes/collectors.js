@@ -7,7 +7,8 @@ const {
   getReports,
   updateProfile,
   getInventory,
-  getVendors
+  getVendors,
+  getUserByQR
 } = require('../controllers/collectorController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -16,6 +17,7 @@ router.use(protect);
 router.use(authorize('collector'));
 
 router.get('/dashboard', getDashboard);
+router.post('/verify-qr', getUserByQR); // Look up user by QR code
 router.post('/verify-dropoff', verifyDropoff);
 router.post('/record-collection', verifyDropoff); // Alias for frontend compatibility
 router.get('/transactions', getTransactions);

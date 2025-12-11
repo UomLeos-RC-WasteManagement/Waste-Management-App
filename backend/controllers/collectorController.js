@@ -422,3 +422,78 @@ exports.getVendors = async (req, res) => {
     });
   }
 };
+
+// @desc    Get user by QR code
+// @route   POST /api/collectors/verify-qr
+// @access  Private (Collector)
+exports.getUserByQR = async (req, res) => {
+  try {
+    const { qrCode } = req.body;
+
+    if (!qrCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide QR code'
+      });
+    }
+
+    let userId = qrCode;
+
+    // Try to parse QR code if it's JSON
+    try {
+      const qrData = JSON.parse(qrCode);
+      // Support both 'id' and 'userId' fields in QR code
+      if (qrData.id) {
+        userId = qrData.id;
+      } else if (qrData.userId) {
+        userId = qrData.userId;
+      } else if (qrData._id) {
+        userId = qrData._id;
+      }
+    } catch {
+      // QR code is plain user ID or QR string
+    }
+
+    // Look up user by _id first (most common case)
+    let user = await User.findById(userId).select(
+      'name email phone points totalWasteDisposed badges createdAt'
+    );
+
+    // If not found by _id, try by qrCode field
+    if (!user) {
+      user = await User.findOne({ qrCode: qrCode }).select(
+        'name email phone points totalWasteDisposed badges createdAt'
+      );
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found. Please check the QR code.'
+      });
+    }
+
+    // Get user's recent transactions
+    const recentTransactions = await WasteTransaction.find({
+      user: user._id,
+      collector: req.user._id
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('wasteType quantity pointsEarned createdAt');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+        recentTransactions,
+        lastDropoff: recentTransactions.length > 0 ? recentTransactions[0].createdAt : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

@@ -1,8 +1,8 @@
 // API Configuration
-// Use deployed backend on Vercel
-export const API_URL = 'https://waste-management-app-five.vercel.app/api';
-// For local development, uncomment the line below:
-// export const API_URL = 'http://localhost:3000/api';
+// For local development (backend running on port 3000):
+export const API_URL = 'http://192.168.17.15:3000/api';
+// For deployed backend on Vercel, use:
+// export const API_URL = 'https://waste-management-app-five.vercel.app/api';
 
 // API Endpoints
 export const ENDPOINTS = {
@@ -28,6 +28,7 @@ export const ENDPOINTS = {
 
   // Collectors
   COLLECTOR_DASHBOARD: '/collectors/dashboard',
+  COLLECTOR_VERIFY_QR: '/collectors/verify-qr',
   COLLECTOR_VERIFY_DROPOFF: '/collectors/verify-dropoff',
   COLLECTOR_RECORD_COLLECTION: '/collectors/record-collection', // Alias
   COLLECTOR_TRANSACTIONS: '/collectors/transactions',
