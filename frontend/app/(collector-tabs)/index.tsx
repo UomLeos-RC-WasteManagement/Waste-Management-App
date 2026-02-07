@@ -79,17 +79,31 @@ export default function CollectorDashboard() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hello, {user?.name}! 🚛</Text>
-        <Text style={styles.subtitle}>Collector Dashboard</Text>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.greeting}>Hello, {user?.name}! 🚛</Text>
+            <Text style={styles.subtitle}>Collector Dashboard</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push('/(collector-tabs)/profile' as any)}
+          >
+            <View style={styles.profileImageContainer}>
+              <Text style={styles.profileImagePlaceholder}>
+                {user?.name?.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.quickStats}>
         <View style={[styles.quickStatCard, { backgroundColor: '#E3F2FD' }]}>
-          <Text style={styles.quickStatValue}>{stats?.todayCollections || 0}</Text>
+          <Text style={styles.quickStatValue}>{stats?.today?.transactions || 0}</Text>
           <Text style={styles.quickStatLabel}>Today Collections</Text>
         </View>
         <View style={[styles.quickStatCard, { backgroundColor: '#E8F5E9' }]}>
-          <Text style={styles.quickStatValue}>{stats?.todayWeight || 0} kg</Text>
+          <Text style={styles.quickStatValue}>{stats?.today?.wasteCollected || 0} kg</Text>
           <Text style={styles.quickStatLabel}>Today Weight</Text>
         </View>
       </View>
@@ -99,26 +113,43 @@ export default function CollectorDashboard() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>📊</Text>
-            <Text style={styles.statValue}>{stats?.weeklyWeight || 0} kg</Text>
-            <Text style={styles.statLabel}>This Week</Text>
+            <Text style={styles.statValue}>{stats?.collector?.totalTransactions || 0}</Text>
+            <Text style={styles.statLabel}>Total Collections</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>📅</Text>
-            <Text style={styles.statValue}>{stats?.monthlyWeight || 0} kg</Text>
+            <Text style={styles.statValue}>{stats?.thisMonth?.wasteCollected || 0} kg</Text>
             <Text style={styles.statLabel}>This Month</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>💰</Text>
-            <Text style={styles.statValue}>Rs. {stats?.totalEarnings || 0}</Text>
-            <Text style={styles.statLabel}>Total Earnings</Text>
+            <Text style={styles.statValue}>{stats?.collector?.totalWasteCollected || 0} kg</Text>
+            <Text style={styles.statLabel}>Total Collected</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statIcon}>📦</Text>
-            <Text style={styles.statValue}>{stats?.pendingInventory || 0} kg</Text>
-            <Text style={styles.statLabel}>Inventory</Text>
+            <Text style={styles.statIcon}>♻️</Text>
+            <Text style={styles.statValue}>{stats?.collector?.acceptedWasteTypes?.length || 0}</Text>
+            <Text style={styles.statLabel}>Waste Types</Text>
           </View>
         </View>
       </View>
+
+      {stats?.thisMonth?.wasteBreakdown && Object.keys(stats.thisMonth.wasteBreakdown).length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>This Month&apos;s Waste Breakdown</Text>
+          <View style={styles.wasteBreakdownCard}>
+            {Object.entries(stats.thisMonth.wasteBreakdown).map(([type, amount]: [string, any]) => (
+              <View key={type} style={styles.wasteBreakdownItem}>
+                <View style={styles.wasteBreakdownLeft}>
+                  <Text style={styles.wasteBreakdownIcon}>♻️</Text>
+                  <Text style={styles.wasteBreakdownType}>{type}</Text>
+                </View>
+                <Text style={styles.wasteBreakdownAmount}>{amount} kg</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -157,6 +188,18 @@ export default function CollectorDashboard() {
           </View>
           <Text style={styles.actionButtonArrow}>›</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push('/(collector-tabs)/profile' as any)}
+        >
+          <Text style={styles.actionButtonIcon}>👤</Text>
+          <View style={styles.actionButtonContent}>
+            <Text style={styles.actionButtonTitle}>My Profile</Text>
+            <Text style={styles.actionButtonSubtitle}>View and edit your profile</Text>
+          </View>
+          <Text style={styles.actionButtonArrow}>›</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -179,6 +222,42 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  profileButton: {
+    padding: 4,
+  },
+  profileIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileIcon: {
+    fontSize: 24,
+  },
+  profileImageContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileImagePlaceholder: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primary,
   },
   greeting: {
     fontSize: 28,
@@ -288,5 +367,42 @@ const styles = StyleSheet.create({
   actionButtonArrow: {
     fontSize: 28,
     color: COLORS.gray,
+  },
+  wasteBreakdownCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  wasteBreakdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  wasteBreakdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  wasteBreakdownIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  wasteBreakdownType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.dark,
+  },
+  wasteBreakdownAmount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primary,
   },
 });

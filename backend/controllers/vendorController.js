@@ -2,6 +2,7 @@ const Vendor = require('../models/Vendor');
 const Reward = require('../models/Reward');
 const RewardRedemption = require('../models/RewardRedemption');
 const WastePurchase = require('../models/WastePurchase');
+const WasteOffer = require('../models/WasteOffer');
 const VendorPricing = require('../models/VendorPricing');
 const Collector = require('../models/Collector');
 const WasteTransaction = require('../models/WasteTransaction');
@@ -464,16 +465,36 @@ exports.updateProfile = async (req, res) => {
 // @desc    Get available waste offers from collectors (marketplace)
 // @route   GET /api/vendors/offers
 // @access  Private (Vendor)
+// @desc    Get available waste offers from collectors
+// @route   GET /api/vendors/offers
+// @access  Private (Vendor)
 exports.getOffers = async (req, res) => {
   try {
-    const { wasteType, radius = 50 } = req.query; // radius in km
+    const { wasteType, radius = 50, minQuantity, maxPrice } = req.query; // radius in km
 
-    // Find active collectors
-    let collectorQuery = { isActive: true, isVerified: true };
+    let offerQuery = { 
+      status: 'available',
+      expiresAt: { $gte: new Date() }
+    };
 
-    // If vendor has location, find collectors within radius
+    // Filter by waste type
+    if (wasteType) {
+      offerQuery.wasteType = wasteType;
+    }
+
+    // Filter by minimum quantity
+    if (minQuantity) {
+      offerQuery['quantity.value'] = { $gte: parseFloat(minQuantity) };
+    }
+
+    // Filter by maximum price
+    if (maxPrice) {
+      offerQuery.minPricePerKg = { $lte: parseFloat(maxPrice) };
+    }
+
+    // If vendor has location, find offers within radius
     if (req.user.location && req.user.location.coordinates) {
-      collectorQuery.location = {
+      offerQuery.location = {
         $near: {
           $geometry: {
             type: 'Point',
@@ -484,58 +505,14 @@ exports.getOffers = async (req, res) => {
       };
     }
 
-    const collectors = await Collector.find(collectorQuery).select(
-      'name address phone location acceptedWasteTypes totalWasteCollected'
-    );
-
-    // Get inventory for each collector
-    const offers = await Promise.all(
-      collectors.map(async (collector) => {
-        let transactionQuery = {
-          collector: collector._id,
-          status: 'verified'
-        };
-
-        if (wasteType) {
-          transactionQuery.wasteType = wasteType;
-        }
-
-        const transactions = await WasteTransaction.find(transactionQuery);
-
-        // Calculate inventory by waste type
-        const inventory = {};
-        transactions.forEach(t => {
-          if (!inventory[t.wasteType]) {
-            inventory[t.wasteType] = {
-              wasteType: t.wasteType,
-              quantity: 0,
-              unit: t.quantity.unit || 'kg'
-            };
-          }
-          inventory[t.wasteType].quantity += t.quantity.value;
-        });
-
-        return {
-          collector: {
-            _id: collector._id,
-            name: collector.name,
-            address: collector.address,
-            phone: collector.phone,
-            location: collector.location,
-            totalWasteCollected: collector.totalWasteCollected
-          },
-          inventory: Object.values(inventory)
-        };
-      })
-    );
-
-    // Filter out collectors with no inventory
-    const availableOffers = offers.filter(offer => offer.inventory.length > 0);
+    const offers = await WasteOffer.find(offerQuery)
+      .populate('collector', 'name address phone location totalWasteCollected')
+      .sort('-createdAt');
 
     res.status(200).json({
       success: true,
-      count: availableOffers.length,
-      data: availableOffers
+      count: offers.length,
+      data: offers
     });
   } catch (error) {
     res.status(500).json({
@@ -548,10 +525,14 @@ exports.getOffers = async (req, res) => {
 // @desc    Purchase waste from collector
 // @route   POST /api/vendors/purchase
 // @access  Private (Vendor)
+// @desc    Purchase waste from collector (Create purchase request)
+// @route   POST /api/vendors/purchase
+// @access  Private (Vendor)
 exports.purchaseWaste = async (req, res) => {
   try {
-    const { collectorId, wasteType, quantity, pricePerUnit, notes, pickupDate } = req.body;
+    const { offerId, collectorId, wasteType, quantity, pricePerUnit, notes, pickupDate } = req.body;
 
+    // Validate required fields
     if (!collectorId || !wasteType || !quantity || !pricePerUnit) {
       return res.status(400).json({
         success: false,
@@ -568,13 +549,31 @@ exports.purchaseWaste = async (req, res) => {
       });
     }
 
+    // If offerId provided, verify and reserve the offer
+    let offer = null;
+    if (offerId) {
+      offer = await WasteOffer.findById(offerId);
+      
+      if (!offer || offer.status !== 'available') {
+        return res.status(400).json({
+          success: false,
+          message: 'Offer not available'
+        });
+      }
+
+      // Reserve the offer
+      offer.status = 'reserved';
+      await offer.save();
+    }
+
     // Calculate total amount
     const totalAmount = quantity * pricePerUnit;
 
-    // Create purchase record
+    // Create purchase request (status: pending)
     const purchase = await WastePurchase.create({
       vendor: req.user._id,
       collector: collectorId,
+      offer: offerId || null,
       wasteType,
       quantity: {
         value: quantity,
@@ -582,17 +581,96 @@ exports.purchaseWaste = async (req, res) => {
       },
       pricePerUnit,
       totalAmount,
-      pickupDate: pickupDate || new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to tomorrow
-      notes,
-      location: collector.location
+      status: 'pending', // Waiting for collector confirmation
+      pickupDate: pickupDate || new Date(Date.now() + 24 * 60 * 60 * 1000),
+      vendorNotes: notes,
+      location: collector.location,
+      collectorResponse: {
+        status: 'pending'
+      }
     });
 
     await purchase.populate('collector', 'name address phone');
 
+    // TODO: Send notification to collector
+
     res.status(201).json({
       success: true,
       data: purchase,
-      message: 'Purchase order created successfully'
+      message: 'Purchase request sent to collector. Awaiting confirmation.'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get vendor's purchase requests and history
+// @route   GET /api/vendors/purchases
+// @access  Private (Vendor)
+exports.getPurchases = async (req, res) => {
+  try {
+    const { status = 'all' } = req.query;
+
+    let query = { vendor: req.user._id };
+    
+    if (status !== 'all') {
+      query.status = status;
+    }
+
+    const purchases = await WastePurchase.find(query)
+      .populate('collector', 'name address phone')
+      .populate('offer', 'wasteType quantity minPricePerKg')
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      count: purchases.length,
+      data: purchases
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Cancel purchase request
+// @route   PUT /api/vendors/purchases/:id/cancel
+// @access  Private (Vendor)
+exports.cancelPurchase = async (req, res) => {
+  try {
+    const purchase = await WastePurchase.findOne({
+      _id: req.params.id,
+      vendor: req.user._id,
+      status: { $in: ['pending', 'accepted'] }
+    });
+
+    if (!purchase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase not found or cannot be cancelled'
+      });
+    }
+
+    purchase.status = 'cancelled';
+    
+    // Release the offer if it was reserved
+    if (purchase.offer) {
+      await WasteOffer.findByIdAndUpdate(purchase.offer, {
+        status: 'available'
+      });
+    }
+
+    await purchase.save();
+
+    res.status(200).json({
+      success: true,
+      data: purchase,
+      message: 'Purchase request cancelled'
     });
   } catch (error) {
     res.status(500).json({

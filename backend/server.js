@@ -1,12 +1,26 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 
 const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Keep MongoDB cluster alive (Free Tier workaround)
+// Ping database every 30 seconds to prevent idle timeout
+setInterval(async () => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.db.admin().ping();
+      console.log('🏓 DB pinged - keeping connection alive');
+    }
+  } catch (error) {
+    console.error('❌ DB ping failed:', error.message);
+  }
+}, 30000); // 30 seconds (30000 ms)
 
 // Middleware
 app.use(cors({

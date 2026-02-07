@@ -1,6 +1,6 @@
 // API Configuration
 // For local development (backend running on port 3000):
-export const API_URL = 'http://192.168.17.15:3000/api';
+export const API_URL = 'http://192.168.43.196:3000/api';
 // For deployed backend on Vercel, use:
 // export const API_URL = 'https://waste-management-app-five.vercel.app/api';
 
@@ -25,6 +25,13 @@ export const ENDPOINTS = {
   JOIN_CHALLENGE: (id: string) => `/users/challenges/${id}/join`,
   LEADERBOARD: '/users/leaderboard',
   BADGES: '/users/badges',
+  
+  // User Waste Offers (User-to-Collector marketplace)
+  USER_OFFERS: '/users/offers', // Get user's offers
+  USER_CREATE_OFFER: '/users/offers', // Create new waste offer
+  USER_DELETE_OFFER: (id: string) => `/users/offers/${id}`, // Delete offer
+  USER_PURCHASE_REQUESTS: '/users/purchase-requests', // Get purchase requests from collectors
+  USER_RESPOND_REQUEST: (id: string) => `/users/purchase-requests/${id}`, // Accept/reject request
 
   // Collectors
   COLLECTOR_DASHBOARD: '/collectors/dashboard',
@@ -36,6 +43,16 @@ export const ENDPOINTS = {
   COLLECTOR_INVENTORY: '/collectors/inventory',
   COLLECTOR_VENDORS: '/collectors/vendors',
   COLLECTOR_PROFILE: '/collectors/profile',
+  COLLECTOR_OFFERS: '/collectors/offers', // Manage waste offers
+  COLLECTOR_CREATE_OFFER: '/collectors/offers', // Create new offer
+  COLLECTOR_PURCHASE_REQUESTS: '/collectors/purchase-requests', // View purchase requests
+  
+  // Collector User Waste Marketplace (Browse and buy from users)
+  COLLECTOR_USER_OFFERS: '/collectors/user-offers', // Browse user waste offers
+  COLLECTOR_CREATE_PURCHASE_REQUEST: (offerId: string) => `/collectors/user-offers/${offerId}/request`, // Request to buy
+  COLLECTOR_MY_USER_REQUESTS: '/collectors/user-purchase-requests', // Collector's sent requests
+  COLLECTOR_COMPLETE_USER_PICKUP: (requestId: string) => `/collectors/user-purchase-requests/${requestId}/complete`, // Complete pickup
+  COLLECTOR_CANCEL_USER_REQUEST: (requestId: string) => `/collectors/user-purchase-requests/${requestId}`, // Cancel request
 
   // Vendors
   VENDOR_DASHBOARD: '/vendors/dashboard',
@@ -76,6 +93,17 @@ export const POINTS_PER_KG = {
   'Paper': 5,
   'Metal': 20,
   'Organic': 3,
+};
+
+// Cash reward per kg (LKR)
+export const CASH_PER_KG = {
+  'E-waste': 25,
+  'Plastic': 5,
+  'Polythene': 5,
+  'Glass': 2,
+  'Paper': 2,
+  'Metal': 10,
+  'Organic': 1,
 };
 
 // Badge Levels

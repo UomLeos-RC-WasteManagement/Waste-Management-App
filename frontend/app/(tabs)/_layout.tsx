@@ -108,6 +108,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="offers"
+        options={{
+          title: "Offers",
+          tabBarIcon: ({ color, focused }) => (
+            <CustomTabButton
+              iconName="local-offer"
+              label="Offers"
+              color={color}
+              focused={focused}
+            />
+          ),
+          tabBarLabel: () => null,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
@@ -120,6 +135,32 @@ export default function TabLayout() {
             />
           ),
           tabBarLabel: () => null,
+        }}
+      />
+
+      {/* Hidden screens - not shown in tab bar */}
+      <Tabs.Screen
+        name="create-offer"
+        options={{
+          href: null, // This hides it from the tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="offer-details"
+        options={{
+          href: null, // This hides it from the tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="my-offers"
+        options={{
+          href: null, // This hides it from the tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="requests"
+        options={{
+          href: null, // This hides it from the tab bar
         }}
       />
     </Tabs>

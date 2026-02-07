@@ -30,11 +30,14 @@ export default function ProfileScreen() {
   const fetchLeaderboard = async () => {
     try {
       const response: any = await api.get(ENDPOINTS.LEADERBOARD);
-      if (response.success) {
+      console.log('📊 Leaderboard response:', response);
+      if (response.success && response.data) {
+        console.log('✅ Leaderboard data count:', response.data.length);
+        console.log('📋 First user:', response.data[0]);
         setLeaderboard(response.data);
       }
     } catch (error) {
-      console.error("Error fetching leaderboard:", error);
+      console.error("❌ Error fetching leaderboard:", error);
     } finally {
       setLoading(false);
     }
@@ -105,6 +108,16 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {user?.cashEarned && user.cashEarned > 0 && (
+        <View style={styles.cashCard}>
+          <Text style={styles.cashIcon}>💵</Text>
+          <View style={styles.cashInfo}>
+            <Text style={styles.cashLabel}>Total Cash Earned</Text>
+            <Text style={styles.cashValue}>LKR {user.cashEarned.toFixed(2)}</Text>
+          </View>
+        </View>
+      )}
+
       {user?.badges && user.badges.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Badges Earned 🏅</Text>
@@ -122,44 +135,50 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Leaderboard 👑</Text>
         <View style={styles.leaderboardCard}>
-          {leaderboard.slice(0, 10).map((leader, index) => {
-            const isCurrentUser = leader._id === user?._id;
-            return (
-              <View
-                key={leader._id}
-                style={[
-                  styles.leaderboardItem,
-                  isCurrentUser && styles.leaderboardItemHighlight,
-                ]}
-              >
-                <View style={styles.leaderboardRank}>
-                  {index < 3 ? (
-                    <Text style={styles.medalIcon}>
-                      {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
+          {leaderboard && leaderboard.length > 0 ? (
+            leaderboard.slice(0, 10).map((leader, index) => {
+              const isCurrentUser = leader._id === user?._id;
+              return (
+                <View
+                  key={leader._id || `leader-${index}`}
+                  style={[
+                    styles.leaderboardItem,
+                    isCurrentUser && styles.leaderboardItemHighlight,
+                  ]}
+                >
+                  <View style={styles.leaderboardRank}>
+                    {index < 3 ? (
+                      <Text style={styles.medalIcon}>
+                        {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
+                      </Text>
+                    ) : (
+                      <Text style={styles.rankNumber}>{index + 1}</Text>
+                    )}
+                  </View>
+                  <View style={styles.leaderboardInfo}>
+                    <Text
+                      style={[
+                        styles.leaderboardName,
+                        isCurrentUser && styles.leaderboardNameHighlight,
+                      ]}
+                    >
+                      {leader.name} {isCurrentUser && "(You)"}
                     </Text>
-                  ) : (
-                    <Text style={styles.rankNumber}>{index + 1}</Text>
-                  )}
-                </View>
-                <View style={styles.leaderboardInfo}>
-                  <Text
-                    style={[
-                      styles.leaderboardName,
-                      isCurrentUser && styles.leaderboardNameHighlight,
-                    ]}
-                  >
-                    {leader.name} {isCurrentUser && "(You)"}
-                  </Text>
-                  <Text style={styles.leaderboardWaste}>
-                    {leader.totalWasteDisposed || 0} kg recycled
+                    <Text style={styles.leaderboardWaste}>
+                      {leader.totalWasteDisposed || 0} kg recycled
+                    </Text>
+                  </View>
+                  <Text style={styles.leaderboardPoints}>
+                    {leader.points || 0} pts
                   </Text>
                 </View>
-                <Text style={styles.leaderboardPoints}>
-                  {leader.points || 0} pts
-                </Text>
-              </View>
-            );
-          })}
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No leaderboard data yet</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -347,6 +366,40 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0E0E0",
     marginHorizontal: 10,
   },
+  cashCard: {
+    backgroundColor: '#FFF9E6',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    marginTop: -10,
+    padding: 20,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFB800',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cashIcon: {
+    fontSize: 36,
+    marginRight: 15,
+  },
+  cashInfo: {
+    flex: 1,
+  },
+  cashLabel: {
+    fontSize: 14,
+    color: COLORS.gray,
+    marginBottom: 4,
+  },
+  cashValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFB800',
+  },
   section: {
     marginHorizontal: 20,
     marginBottom: 25,
@@ -440,6 +493,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: COLORS.primary,
+  },
+  emptyState: {
+    padding: 30,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: 'center',
   },
   menuItem: {
     flexDirection: "row",

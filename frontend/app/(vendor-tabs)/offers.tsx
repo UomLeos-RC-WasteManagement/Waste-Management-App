@@ -8,6 +8,8 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
+  TextInput,
+  Modal,
 } from 'react-native';
 import api from '@/services/api';
 import { ENDPOINTS, COLORS } from '@/constants/config';
@@ -16,6 +18,8 @@ export default function VendorOffersScreen() {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [pricePerKg, setPricePerKg] = useState('');
 
   useEffect(() => {
     fetchOffers();
@@ -29,9 +33,20 @@ export default function VendorOffersScreen() {
       console.log('📥 Offers response:', response);
       
       if (response.success && response.data) {
-        const offersData = response.data.offers || response.data;
-        setOffers(offersData);
-        console.log('✅ Loaded offers:', offersData.length, 'offers');
+        // Data now comes from WasteOffer model, not collector inventory
+        const offersData = Array.isArray(response.data) ? response.data : [];
+        
+        // Transform to include collector info
+        const transformedOffers = offersData.map((offer: any) => ({
+          ...offer,
+          collectorId: offer.collector?._id || offer.collector,
+          collectorName: offer.collector?.name || 'Unknown Collector',
+          quantity: offer.quantity?.value || offer.quantity,
+          wasteType: offer.wasteType,
+        }));
+        
+        setOffers(transformedOffers);
+        console.log('✅ Loaded offers:', transformedOffers.length, 'offers');
       } else {
         console.log('⚠️ No offers available');
         setOffers([]);
@@ -51,38 +66,88 @@ export default function VendorOffersScreen() {
   };
 
   const handlePurchase = async (offer: any) => {
-    Alert.alert(
-      'Purchase Waste',
-      `Buy ${offer.weight}kg of ${offer.type} from ${offer.collector} for Rs. ${offer.price}?`,
+    setSelectedOffer(offer);
+    
+    // Prompt for price per kg
+    Alert.prompt(
+      'Enter Price',
+      `How much will you pay per kg for ${offer.wasteType || 'this waste'}?\n\nQuantity: ${offer.quantity || 0} kg`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => setSelectedOffer(null),
+        },
         {
           text: 'Purchase',
-          onPress: async () => {
-            try {
-              console.log('💰 Purchasing waste...', offer.id);
-              const response: any = await api.post(ENDPOINTS.VENDOR_PURCHASE, {
-                offerId: offer.id,
-                collectorId: offer.collectorId,
-                wasteType: offer.type,
-                weight: offer.weight,
-                price: offer.price,
-              });
-              
-              if (response.success) {
-                Alert.alert('Success', 'Purchase completed!');
-                fetchOffers(); // Refresh the list
-              } else {
-                Alert.alert('Error', response.message || 'Purchase failed');
-              }
-            } catch (error: any) {
-              console.error('❌ Purchase error:', error);
-              Alert.alert('Error', error.message || 'Purchase failed');
+          onPress: (priceInput?: string) => {
+            const price = parseFloat(priceInput || '0');
+            
+            if (!price || price <= 0) {
+              Alert.alert('Invalid Price', 'Please enter a valid price per kg');
+              setSelectedOffer(null);
+              return;
             }
+            
+            completePurchase(offer, price);
           },
         },
-      ]
+      ],
+      'plain-text',
+      '',
+      'numeric'
     );
+  };
+
+  const completePurchase = async (offer: any, pricePerKg: number) => {
+    try {
+      console.log('💰 Purchasing waste...', offer);
+      
+      const quantity = offer.quantity || offer.weight || 0;
+      const totalAmount = quantity * pricePerKg;
+      
+      // Prepare purchase data
+      const purchaseData = {
+        offerId: offer._id, // Link to the WasteOffer
+        collectorId: offer.collectorId || offer.collector?._id || offer.collector,
+        wasteType: offer.wasteType || offer.type || 'Mixed',
+        quantity: quantity,
+        pricePerUnit: pricePerKg,
+        notes: `Purchased from ${offer.collectorName}`,
+      };
+      
+      console.log('📤 Purchase data:', purchaseData);
+      
+      const response: any = await api.post(ENDPOINTS.VENDOR_PURCHASE, purchaseData);
+      
+      if (response.success) {
+        Alert.alert(
+          'Success! ✅',
+          `You have successfully purchased:\n\n` +
+          `Waste Type: ${purchaseData.wasteType}\n` +
+          `Quantity: ${quantity} kg\n` +
+          `Price per kg: Rs. ${pricePerKg}\n` +
+          `Total: Rs. ${totalAmount.toFixed(2)}\n\n` +
+          `From: ${offer.collectorName}`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setSelectedOffer(null);
+                fetchOffers(); // Refresh the list
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.message || 'Purchase failed');
+        setSelectedOffer(null);
+      }
+    } catch (error: any) {
+      console.error('❌ Purchase error:', error);
+      Alert.alert('Error', error.message || 'Failed to complete purchase');
+      setSelectedOffer(null);
+    }
   };
 
   if (loading) {
@@ -104,17 +169,25 @@ export default function VendorOffersScreen() {
       </View>
 
       <View style={styles.offersList}>
-        {offers.map((offer) => (
-          <View key={offer.id} style={styles.offerCard}>
+        {offers.map((offer, index) => (
+          <View key={offer._id || `offer-${index}`} style={styles.offerCard}>
             <View style={styles.offerHeader}>
-              <Text style={styles.collectorName}>{offer.collector}</Text>
+              <Text style={styles.collectorName}>
+                {offer.collectorName || 'Unknown Collector'}
+              </Text>
               <View style={styles.typeBadge}>
-                <Text style={styles.typeBadgeText}>{offer.type}</Text>
+                <Text style={styles.typeBadgeText}>
+                  {offer.wasteType || offer.type || 'Mixed'}
+                </Text>
               </View>
             </View>
             <View style={styles.offerDetails}>
-              <Text style={styles.offerWeight}>⚖️ {offer.weight} kg</Text>
-              <Text style={styles.offerPrice}>💰 Rs. {offer.price}</Text>
+              <Text style={styles.offerWeight}>
+                ⚖️ {offer.quantity || offer.weight || 0} kg
+              </Text>
+              <Text style={styles.offerPrice}>
+                💰 Price on request
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.purchaseButton}
