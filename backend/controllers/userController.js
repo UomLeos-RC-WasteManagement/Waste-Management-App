@@ -5,6 +5,8 @@ const Reward = require('../models/Reward');
 const RewardRedemption = require('../models/RewardRedemption');
 const Challenge = require('../models/Challenge');
 const Badge = require('../models/Badge');
+const UserWasteOffer = require('../models/UserWasteOffer');
+const CollectorPurchaseRequest = require('../models/CollectorPurchaseRequest');
 const { calculatePoints, generateRedemptionCode, generateRedemptionQRCode } = require('../utils/helpers');
 
 // @desc    Get user dashboard stats
@@ -407,7 +409,8 @@ exports.getLeaderboard = async (req, res) => {
         .select('name profileImage points totalWasteDisposed badges')
         .sort('-points')
         .limit(parseInt(limit))
-        .populate('badges', 'name icon level');
+        .populate('badges', 'name icon level')
+        .lean(); // Convert to plain JavaScript objects
     } else {
       // Period-based leaderboard
       const transactions = await WasteTransaction.aggregate([
@@ -481,6 +484,229 @@ exports.getMyBadges = async (req, res) => {
         earned,
         available
       }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// ==================== USER WASTE OFFERS ====================
+
+// @desc    Create waste offer (user sells waste)
+// @route   POST /api/users/offers
+// @access  Private (User)
+exports.createWasteOffer = async (req, res) => {
+  try {
+    const { wasteType, quantity, description, expectedPrice, location, pickupPreference, availableFrom, availableUntil } = req.body;
+
+    // Validate inputs
+    if (!wasteType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide waste type'
+      });
+    }
+
+    if (!quantity || !quantity.value || isNaN(quantity.value) || quantity.value <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide valid quantity with value greater than 0'
+      });
+    }
+
+    if (!location || !location.address || !location.city) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide complete location (address and city)'
+      });
+    }
+
+    const offer = await UserWasteOffer.create({
+      user: req.user._id,
+      wasteType,
+      quantity: {
+        value: quantity.value,
+        unit: quantity.unit || 'kg'
+      },
+      description: description || '',
+      expectedPrice: expectedPrice || 0,
+      location,
+      pickupPreference: pickupPreference || '',
+      availableFrom: availableFrom || new Date(),
+      availableUntil: availableUntil || null,
+      status: 'available'
+    });
+
+    await offer.populate('user', 'name phone address');
+
+    res.status(201).json({
+      success: true,
+      data: offer,
+      message: 'Waste offer created successfully!'
+    });
+  } catch (error) {
+    console.error('Error creating waste offer:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get user's waste offers
+// @route   GET /api/users/offers
+// @access  Private (User)
+exports.getMyOffers = async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    const query = { user: req.user._id };
+    if (status) {
+      query.status = status;
+    }
+
+    const offers = await UserWasteOffer.find(query)
+      .populate('user', 'name phone address')
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      count: offers.length,
+      data: offers
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Get purchase requests for user's offers
+// @route   GET /api/users/purchase-requests
+// @access  Private (User)
+exports.getPurchaseRequests = async (req, res) => {
+  try {
+    const requests = await CollectorPurchaseRequest.find({
+      user: req.user._id,
+      status: { $in: ['pending', 'accepted'] }
+    })
+      .populate('userOffer', 'wasteType quantity description')
+      .populate('collector', 'name phone businessName address')
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      count: requests.length,
+      data: requests
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Accept/Reject purchase request
+// @route   PUT /api/users/purchase-requests/:id
+// @access  Private (User)
+exports.respondToPurchaseRequest = async (req, res) => {
+  try {
+    const { status, response } = req.body; // status: 'accepted' or 'rejected'
+
+    if (!['accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Use "accepted" or "rejected"'
+      });
+    }
+
+    const purchaseRequest = await CollectorPurchaseRequest.findById(req.params.id)
+      .populate('userOffer')
+      .populate('collector', 'name phone');
+
+    if (!purchaseRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase request not found'
+      });
+    }
+
+    // Verify this request belongs to the user
+    if (purchaseRequest.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to respond to this request'
+      });
+    }
+
+    if (purchaseRequest.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `This request has already been ${purchaseRequest.status}`
+      });
+    }
+
+    purchaseRequest.status = status;
+    purchaseRequest.userResponse = response || '';
+    purchaseRequest.respondedAt = new Date();
+    await purchaseRequest.save();
+
+    // If accepted, update offer status to pending
+    if (status === 'accepted') {
+      const offer = await UserWasteOffer.findById(purchaseRequest.userOffer._id);
+      offer.status = 'pending';
+      await offer.save();
+    }
+
+    await purchaseRequest.populate('collector', 'name phone businessName');
+
+    res.status(200).json({
+      success: true,
+      data: purchaseRequest,
+      message: status === 'accepted' 
+        ? 'Purchase request accepted! Collector will contact you for pickup.' 
+        : 'Purchase request rejected.'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Delete/Cancel waste offer
+// @route   DELETE /api/users/offers/:id
+// @access  Private (User)
+exports.deleteWasteOffer = async (req, res) => {
+  try {
+    const offer = await UserWasteOffer.findById(req.params.id);
+
+    if (!offer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Offer not found'
+      });
+    }
+
+    if (offer.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this offer'
+      });
+    }
+
+    offer.status = 'cancelled';
+    await offer.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Offer cancelled successfully'
     });
   } catch (error) {
     res.status(500).json({

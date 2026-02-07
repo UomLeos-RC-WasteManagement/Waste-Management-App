@@ -12,6 +12,8 @@ const {
   updateProfile,
   getOffers,
   purchaseWaste,
+  getPurchases,
+  cancelPurchase,
   getVendorInventory,
   getPricing,
   updatePricing
@@ -42,8 +44,10 @@ router.get('/analytics', getAnalytics);
 router.put('/profile', updateProfile);
 
 // Marketplace - Buy waste from collectors
-router.get('/offers', getOffers); // Browse available waste from collectors
-router.post('/purchase', purchaseWaste); // Purchase waste from collector
+router.get('/offers', getOffers); // Browse available waste offers from collectors
+router.post('/purchase', purchaseWaste); // Create purchase request
+router.get('/purchases', getPurchases); // View purchase requests and history
+router.put('/purchases/:id/cancel', cancelPurchase); // Cancel purchase request
 router.get('/inventory', getVendorInventory); // View purchased waste inventory
 
 // Pricing

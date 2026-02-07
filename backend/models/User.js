@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    cashEarned: {
+      type: Number,
+      default: 0,
+    },
     totalWasteDisposed: {
       type: Number,
       default: 0,

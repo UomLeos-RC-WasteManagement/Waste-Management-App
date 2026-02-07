@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
@@ -25,12 +27,16 @@ export default function ProfileScreen() {
 
   const fetchLeaderboard = async () => {
     try {
+      console.log('📊 Fetching leaderboard...');
       const response: any = await api.get(ENDPOINTS.LEADERBOARD);
-      if (response.success) {
+      console.log('📥 Leaderboard response:', response);
+      if (response.success && response.data) {
+        console.log('✅ Leaderboard data count:', response.data.length);
+        console.log('📋 First user:', response.data[0]);
         setLeaderboard(response.data);
       }
     } catch (error) {
-      console.error('Error fetching leaderboard:', error);
+      console.error('❌ Error fetching leaderboard:', error);
     } finally {
       setLoading(false);
     }
@@ -57,17 +63,38 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.backButtonContainer}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.push('/(collector-tabs)/' as any)}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.backButtonTitle}>Profile</Text>
+        </View>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   const userRank = getUserRank();
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.backButtonContainer}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.push('/(collector-tabs)/' as any)}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.backButtonTitle}>Profile</Text>
+      </View>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase()}</Text>
         </View>
@@ -82,18 +109,18 @@ export default function ProfileScreen() {
 
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{user?.points || 0}</Text>
-          <Text style={styles.statLabel}>Points</Text>
+          <Text style={styles.statValue}>{user?.totalWasteCollected || 0} kg</Text>
+          <Text style={styles.statLabel}>Waste Collected</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{user?.totalWasteDisposed || 0} kg</Text>
-          <Text style={styles.statLabel}>Waste Recycled</Text>
+          <Text style={styles.statValue}>{user?.totalTransactions || 0}</Text>
+          <Text style={styles.statLabel}>Collections</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{user?.badges?.length || 0}</Text>
-          <Text style={styles.statLabel}>Badges</Text>
+          <Text style={styles.statValue}>{user?.acceptedWasteTypes?.length || 0}</Text>
+          <Text style={styles.statLabel}>Waste Types</Text>
         </View>
       </View>
 
@@ -114,42 +141,48 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Leaderboard 👑</Text>
         <View style={styles.leaderboardCard}>
-          {leaderboard.slice(0, 10).map((leader, index) => {
-            const isCurrentUser = leader._id === user?._id;
-            return (
-              <View
-                key={leader._id}
-                style={[
-                  styles.leaderboardItem,
-                  isCurrentUser && styles.leaderboardItemHighlight,
-                ]}
-              >
-                <View style={styles.leaderboardRank}>
-                  {index < 3 ? (
-                    <Text style={styles.medalIcon}>
-                      {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+          {leaderboard && leaderboard.length > 0 ? (
+            leaderboard.slice(0, 10).map((leader, index) => {
+              const isCurrentUser = leader._id === user?._id;
+              return (
+                <View
+                  key={leader._id || `leader-${index}`}
+                  style={[
+                    styles.leaderboardItem,
+                    isCurrentUser && styles.leaderboardItemHighlight,
+                  ]}
+                >
+                  <View style={styles.leaderboardRank}>
+                    {index < 3 ? (
+                      <Text style={styles.medalIcon}>
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                      </Text>
+                    ) : (
+                      <Text style={styles.rankNumber}>{index + 1}</Text>
+                    )}
+                  </View>
+                  <View style={styles.leaderboardInfo}>
+                    <Text
+                      style={[
+                        styles.leaderboardName,
+                        isCurrentUser && styles.leaderboardNameHighlight,
+                      ]}
+                    >
+                      {leader.name} {isCurrentUser && '(You)'}
                     </Text>
-                  ) : (
-                    <Text style={styles.rankNumber}>{index + 1}</Text>
-                  )}
+                    <Text style={styles.leaderboardWaste}>
+                      {leader.totalWasteDisposed || 0} kg recycled
+                    </Text>
+                  </View>
+                  <Text style={styles.leaderboardPoints}>{leader.points || 0} pts</Text>
                 </View>
-                <View style={styles.leaderboardInfo}>
-                  <Text
-                    style={[
-                      styles.leaderboardName,
-                      isCurrentUser && styles.leaderboardNameHighlight,
-                    ]}
-                  >
-                    {leader.name} {isCurrentUser && '(You)'}
-                  </Text>
-                  <Text style={styles.leaderboardWaste}>
-                    {leader.totalWasteDisposed || 0} kg recycled
-                  </Text>
-                </View>
-                <Text style={styles.leaderboardPoints}>{leader.points || 0} pts</Text>
-              </View>
-            );
-          })}
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No leaderboard data yet</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -190,10 +223,15 @@ export default function ProfileScreen() {
         <Text style={styles.footerText}>Waste Management App v1.0.0</Text>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
@@ -203,9 +241,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.primary,
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginLeft: 10,
+  },
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 30,
     alignItems: 'center',
   },
@@ -372,6 +431,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary,
+  },
+  emptyState: {
+    padding: 30,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: 'center',
   },
   menuItem: {
     flexDirection: 'row',

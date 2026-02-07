@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/config';
 
 export default function CollectorTabLayout() {
@@ -25,39 +25,66 @@ export default function CollectorTabLayout() {
         animation: 'shift', // Smooth tab transition
       }}
     >
+      {/* Bottom Navigation Tabs */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="grid" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="scan"
         options={{
           title: 'Scan QR',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="qrcode.viewfinder" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="qr-code" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
+        name="offers"
+        options={{
+          title: 'My Offers',
+          tabBarIcon: ({ color }) => <Ionicons name="pricetag" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="user-offers"
+        options={{
+          title: 'User Offers',
+          tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="user-requests"
+        options={{
+          title: 'My Requests',
+          tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />,
+        }}
+      />
+
+      {/* Hidden screens - accessible via navigation but not in tab bar */}
+      <Tabs.Screen
         name="inventory"
         options={{
-          title: 'Inventory',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="archivebox.fill" color={color} />,
+          href: null, // Hide from tab bar
         }}
       />
       <Tabs.Screen
         name="vendors"
         options={{
-          title: 'Vendors',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="building.2.fill" color={color} />,
+          href: null, // Hide from tab bar
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="create-purchase-request"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>

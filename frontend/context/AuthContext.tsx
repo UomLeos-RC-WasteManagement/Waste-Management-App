@@ -9,9 +9,13 @@ interface User {
   email: string;
   phone?: string;
   points?: number;
+  cashEarned?: number;
   qrCode?: string;
   role: string;
   totalWasteDisposed?: number;
+  totalWasteCollected?: number;
+  totalTransactions?: number;
+  acceptedWasteTypes?: string[];
   badges?: any[];
 }
 
@@ -23,6 +27,7 @@ interface AuthContextType {
   register: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  refreshUser: () => Promise<User | undefined>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -33,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   logout: async () => {},
   updateUser: () => {},
+  refreshUser: async () => undefined,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -174,6 +180,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      console.log('🔄 Refreshing user data from server...');
+      const response: any = await api.get(ENDPOINTS.ME);
+      
+      if (response.success && response.data) {
+        console.log('✅ User data refreshed');
+        const updatedUser = response.data;
+        setUser(updatedUser);
+        await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing user data:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -184,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateUser,
+        refreshUser,
       }}
     >
       {children}

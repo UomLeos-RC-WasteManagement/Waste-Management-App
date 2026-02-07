@@ -40,13 +40,35 @@ const wastePurchaseSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'completed', 'cancelled'],
+      enum: ['pending', 'accepted', 'rejected', 'completed', 'cancelled'],
       default: 'pending'
+    },
+    collectorResponse: {
+      status: {
+        type: String,
+        enum: ['pending', 'accepted', 'rejected', 'counter-offered']
+      },
+      message: String,
+      counterPrice: Number,
+      respondedAt: Date
+    },
+    offer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'WasteOffer'
     },
     pickupDate: {
       type: Date
     },
+    actualPickupDate: {
+      type: Date
+    },
     notes: {
+      type: String
+    },
+    vendorNotes: {
+      type: String
+    },
+    collectorNotes: {
       type: String
     },
     location: {

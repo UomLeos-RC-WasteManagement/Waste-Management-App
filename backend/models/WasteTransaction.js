@@ -32,6 +32,15 @@ const wasteTransactionSchema = new mongoose.Schema({
     required: true,
     default: 0
   },
+  rewardType: {
+    type: String,
+    enum: ['points', 'cash'],
+    default: 'points'
+  },
+  cashAmount: {
+    type: Number,
+    default: 0
+  },
   status: {
     type: String,
     enum: ['pending', 'verified', 'rejected'],

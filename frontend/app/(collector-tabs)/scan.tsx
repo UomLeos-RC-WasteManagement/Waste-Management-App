@@ -9,13 +9,15 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
-import { ENDPOINTS, COLORS, WASTE_TYPES, POINTS_PER_KG } from '@/constants/config';
+import { ENDPOINTS, COLORS, WASTE_TYPES, POINTS_PER_KG, CASH_PER_KG } from '@/constants/config';
 
 export default function ScanQRScreen() {
+  const { refreshUser } = useAuth();
   const [userQR, setUserQR] = useState('');
   const [scannedUser, setScannedUser] = useState<any>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
@@ -30,6 +32,7 @@ export default function ScanQRScreen() {
   const [selectedWasteType, setSelectedWasteType] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [rewardType, setRewardType] = useState<'points' | 'cash'>('points');
 
   const openCamera = async () => {
     if (!permission) {
@@ -105,6 +108,12 @@ export default function ScanQRScreen() {
     return Math.round(weightValue * (POINTS_PER_KG[selectedWasteType as keyof typeof POINTS_PER_KG] || 0));
   };
 
+  const calculateCash = () => {
+    if (!weight || !selectedWasteType) return 0;
+    const weightValue = parseFloat(weight) || 0;
+    return weightValue * (CASH_PER_KG[selectedWasteType as keyof typeof CASH_PER_KG] || 0);
+  };
+
   const handleSubmitCollection = async () => {
     if (!weight || parseFloat(weight) <= 0) {
       Alert.alert('Error', 'Please enter a valid weight');
@@ -117,48 +126,75 @@ export default function ScanQRScreen() {
     }
 
     const weightValue = parseFloat(weight);
-    const points = calculatePoints();
+    const cashAmount = calculateCash();
 
     setSubmitting(true);
     try {
       console.log('📝 Recording collection...');
       
-      const response: any = await api.post(ENDPOINTS.COLLECTOR_RECORD_COLLECTION, {
+      const requestBody: any = {
         userId: scannedUser._id,
         wasteType: selectedWasteType,
         quantity: weightValue,
         unit: 'kg',
         qrCodeScanned: true,
-        notes: notes || `QR scan collection`
-      });
+        notes: notes || `QR scan collection`,
+        rewardType: rewardType
+      };
+
+      // Add cash amount if cash reward is selected
+      if (rewardType === 'cash') {
+        requestBody.cashAmount = cashAmount;
+      }
+
+      const response: any = await api.post(ENDPOINTS.COLLECTOR_RECORD_COLLECTION, requestBody);
       
       console.log('✅ Collection recorded:', response);
       
       if (response.success) {
         const earnedPoints = response.data.transaction.pointsEarned;
+        const earnedCash = response.data.transaction.cashAmount || 0;
         const newBadges = response.data.newBadges;
         
-        // Update the scanned user's points locally
-        setScannedUser((prev: any) => ({
-          ...prev,
-          points: (prev.points || 0) + earnedPoints,
-          totalWasteDisposed: (prev.totalWasteDisposed || 0) + weightValue
-        }));
+        // Refresh collector's user data to update stats
+        await refreshUser();
+        
+        // Update the scanned user's stats locally based on reward type
+        if (rewardType === 'points') {
+          setScannedUser((prev: any) => ({
+            ...prev,
+            points: (prev.points || 0) + earnedPoints,
+            totalWasteDisposed: (prev.totalWasteDisposed || 0) + weightValue
+          }));
+        } else {
+          setScannedUser((prev: any) => ({
+            ...prev,
+            cashEarned: (prev.cashEarned || 0) + earnedCash,
+            totalWasteDisposed: (prev.totalWasteDisposed || 0) + weightValue
+          }));
+        }
 
         // Add to recent transactions
         setRecentTransactions((prev) => [{
           wasteType: selectedWasteType,
           quantity: { value: weightValue },
           pointsEarned: earnedPoints,
+          cashAmount: earnedCash,
+          rewardType: rewardType,
           createdAt: new Date().toISOString()
         }, ...prev.slice(0, 4)]);
 
         setShowWasteModal(false);
         
-        let message = `✅ Collection recorded!\n\n📦 ${weightValue}kg of ${selectedWasteType}\n🎁 ${earnedPoints} points awarded to ${scannedUser.name}`;
+        let message = `✅ Collection recorded!\n\n📦 ${weightValue}kg of ${selectedWasteType}\n`;
         
-        if (newBadges && newBadges.length > 0) {
-          message += `\n\n🎖️ New badge(s) earned!`;
+        if (rewardType === 'points') {
+          message += `🎁 ${earnedPoints} points awarded to ${scannedUser.name}`;
+          if (newBadges && newBadges.length > 0) {
+            message += `\n\n🎖️ New badge(s) earned!`;
+          }
+        } else {
+          message += `💵 LKR ${earnedCash.toFixed(2)} cash awarded to ${scannedUser.name}`;
         }
         
         Alert.alert('Success!', message);
@@ -189,7 +225,7 @@ export default function ScanQRScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -204,7 +240,7 @@ export default function ScanQRScreen() {
               <Text style={styles.scanIcon}>📱</Text>
               <Text style={styles.scanTitle}>Scan User QR Code</Text>
               <Text style={styles.scanDescription}>
-                Point your camera at the user's QR code to identify them
+                Point your camera at the user&apos;s QR code to identify them
               </Text>
               
               <TouchableOpacity
@@ -412,6 +448,46 @@ export default function ScanQRScreen() {
                 ))}
               </View>
 
+              {/* Reward Type Selection */}
+              <Text style={styles.modalSectionTitle}>Select Reward Type</Text>
+              <View style={styles.rewardTypeContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.rewardTypeButton,
+                    rewardType === 'points' && styles.rewardTypeButtonActive
+                  ]}
+                  onPress={() => setRewardType('points')}
+                >
+                  <Text style={[
+                    styles.rewardTypeIcon,
+                    rewardType === 'points' && styles.rewardTypeIconActive
+                  ]}>🎁</Text>
+                  <Text style={[
+                    styles.rewardTypeLabel,
+                    rewardType === 'points' && styles.rewardTypeLabelActive
+                  ]}>Points</Text>
+                  <Text style={styles.rewardTypeDesc}>Earn points & badges</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.rewardTypeButton,
+                    rewardType === 'cash' && styles.rewardTypeButtonActive
+                  ]}
+                  onPress={() => setRewardType('cash')}
+                >
+                  <Text style={[
+                    styles.rewardTypeIcon,
+                    rewardType === 'cash' && styles.rewardTypeIconActive
+                  ]}>💵</Text>
+                  <Text style={[
+                    styles.rewardTypeLabel,
+                    rewardType === 'cash' && styles.rewardTypeLabelActive
+                  ]}>Cash</Text>
+                  <Text style={styles.rewardTypeDesc}>Earn cash reward</Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Weight Input */}
               <Text style={styles.modalSectionTitle}>Enter Weight (kg)</Text>
               <TextInput
@@ -433,11 +509,20 @@ export default function ScanQRScreen() {
                 numberOfLines={3}
               />
 
-              {/* Points Preview */}
+              {/* Reward Preview */}
               {weight && selectedWasteType && (
                 <View style={styles.pointsPreview}>
-                  <Text style={styles.pointsPreviewLabel}>Points to Award:</Text>
-                  <Text style={styles.pointsPreviewValue}>+{calculatePoints()} points</Text>
+                  {rewardType === 'points' ? (
+                    <>
+                      <Text style={styles.pointsPreviewLabel}>Points to Award:</Text>
+                      <Text style={styles.pointsPreviewValue}>+{calculatePoints()} points</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.pointsPreviewLabel}>Cash to Award:</Text>
+                      <Text style={styles.pointsPreviewValue}>LKR {calculateCash().toFixed(2)}</Text>
+                    </>
+                  )}
                 </View>
               )}
             </ScrollView>
@@ -458,7 +543,9 @@ export default function ScanQRScreen() {
                 {submitting ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.submitButtonText}>Submit & Award Points</Text>
+                  <Text style={styles.submitButtonText}>
+                    {rewardType === 'points' ? 'Submit & Award Points' : 'Submit & Give Cash'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -470,17 +557,22 @@ export default function ScanQRScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
   scrollContent: {
     flexGrow: 1,
+    backgroundColor: '#F5F7FA',
   },
   header: {
     backgroundColor: COLORS.primary,
     padding: 20,
-    paddingTop: 20,
+    paddingTop: 30,
     paddingBottom: 25,
   },
   title: {
@@ -944,6 +1036,44 @@ const styles = StyleSheet.create({
   notesInput: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  rewardTypeContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 15,
+  },
+  rewardTypeButton: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  rewardTypeButtonActive: {
+    backgroundColor: '#E8F5E9',
+    borderColor: COLORS.primary,
+  },
+  rewardTypeIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  rewardTypeIconActive: {
+    transform: [{ scale: 1.1 }],
+  },
+  rewardTypeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.dark,
+    marginBottom: 4,
+  },
+  rewardTypeLabelActive: {
+    color: COLORS.primary,
+  },
+  rewardTypeDesc: {
+    fontSize: 12,
+    color: COLORS.gray,
   },
   pointsPreview: {
     backgroundColor: '#FFF3CD',

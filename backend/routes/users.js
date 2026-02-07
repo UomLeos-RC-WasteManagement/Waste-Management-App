@@ -10,7 +10,12 @@ const {
   getActiveChallenges,
   joinChallenge,
   getLeaderboard,
-  getMyBadges
+  getMyBadges,
+  createWasteOffer,
+  getMyOffers,
+  getPurchaseRequests,
+  respondToPurchaseRequest,
+  deleteWasteOffer
 } = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -28,5 +33,12 @@ router.get('/challenges', getActiveChallenges);
 router.post('/challenges/:challengeId/join', joinChallenge);
 router.get('/leaderboard', getLeaderboard);
 router.get('/badges', getMyBadges);
+
+// User-to-Collector waste marketplace routes
+router.post('/offers', createWasteOffer);
+router.get('/offers', getMyOffers);
+router.delete('/offers/:id', deleteWasteOffer);
+router.get('/purchase-requests', getPurchaseRequests);
+router.put('/purchase-requests/:id', respondToPurchaseRequest);
 
 module.exports = router;
