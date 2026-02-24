@@ -67,7 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error loading user:', error);
     } finally {
-      setLoading(false);
+      // Reduce initial loading time
+      setTimeout(() => setLoading(false), 100);
     }
   };
 

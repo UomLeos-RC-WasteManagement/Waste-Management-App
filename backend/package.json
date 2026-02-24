@@ -10,9 +10,9 @@
     "multer": "^2.0.2",
     "qrcode": "^1.5.4"
   },
-  "name": "backend",
+  "name": "ecodash-backend",
   "version": "1.0.0",
-  "description": "Waste Management App",
+  "description": "EcoDash - Waste Management Platform",
   "main": "server.js",
   "devDependencies": {
     "nodemon": "^2.0.22"

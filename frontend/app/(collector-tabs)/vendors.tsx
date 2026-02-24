@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,6 +79,7 @@ export default function VendorsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <View style={styles.backButtonContainer}>
           <TouchableOpacity 
             style={styles.backButton}
@@ -96,6 +98,7 @@ export default function VendorsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <View style={styles.backButtonContainer}>
         <TouchableOpacity 
           style={styles.backButton}

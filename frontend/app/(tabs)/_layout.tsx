@@ -4,8 +4,8 @@ import { Platform, View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/config";
 
-// Custom Tab Button Component
-function CustomTabButton({
+// Custom Tab Button Component - Memoized for performance
+const CustomTabButton = React.memo(({
   iconName,
   label,
   color,
@@ -15,7 +15,7 @@ function CustomTabButton({
   label: string;
   color: string;
   focused: boolean;
-}) {
+}) => {
   return (
     <View style={styles.tabButton}>
       <View
@@ -32,7 +32,9 @@ function CustomTabButton({
       </Text>
     </View>
   );
-}
+});
+
+CustomTabButton.displayName = 'CustomTabButton';
 
 export default function TabLayout() {
   return (
@@ -41,6 +43,10 @@ export default function TabLayout() {
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: "#9E9E9E",
         headerShown: false,
+        // Performance optimizations
+        lazy: true, // Lazy load tabs
+        freezeOnBlur: true, // Freeze inactive tabs to save memory
+        animation: 'shift', // Smooth tab transitions
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopWidth: 0,

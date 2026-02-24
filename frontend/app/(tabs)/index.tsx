@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,34 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { ENDPOINTS, COLORS, WASTE_TYPES } from '@/constants/config';
+
+// Memoized components to prevent unnecessary re-renders
+const StatBox = React.memo(({ icon, value, label }: { icon: string; value: number | string; label: string }) => (
+  <View style={styles.statBox}>
+    <Text style={styles.statIcon}>{icon}</Text>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+));
+StatBox.displayName = 'StatBox';
+
+const WasteItem = React.memo(({ type, amount }: { type: string; amount: number }) => {
+  const wasteInfo = WASTE_TYPES.find(w => w.value === type);
+  return (
+    <View style={styles.wasteItem}>
+      <Text style={styles.wasteIcon}>{wasteInfo?.icon || '♻️'}</Text>
+      <Text style={styles.wasteType}>{type}</Text>
+      <Text style={styles.wasteAmount}>{amount} kg</Text>
+    </View>
+  );
+});
+WasteItem.displayName = 'WasteItem';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -24,11 +47,14 @@ export default function HomeScreen() {
     try {
       const response: any = await api.get(ENDPOINTS.DASHBOARD);
       if (response.success) {
-        setDashboard(response.data);
-        // Update user points if changed
-        if (response.data.user.points !== user?.points) {
-          updateUser({ points: response.data.user.points });
-        }
+        // Defer state update for smoother transitions
+        InteractionManager.runAfterInteractions(() => {
+          setDashboard(response.data);
+          // Update user points if changed
+          if (response.data.user.points !== user?.points) {
+            updateUser({ points: response.data.user.points });
+          }
+        });
       }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
@@ -36,20 +62,38 @@ export default function HomeScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, updateUser]);
+  }, [user?.points, updateUser]);
 
   useEffect(() => {
     if (user) {
-      fetchDashboard();
+      // Defer non-critical data fetching
+      InteractionManager.runAfterInteractions(() => {
+        fetchDashboard();
+      });
     } else {
       setLoading(false);
     }
   }, [user, fetchDashboard]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchDashboard();
-  };
+  }, [fetchDashboard]);
+
+  // Memoize navigation handlers
+  const navigateToRewards = useCallback(() => {
+    router.push('/(tabs)/rewards');
+  }, [router]);
+
+  const navigateToMap = useCallback(() => {
+    router.push('/(tabs)/map');
+  }, [router]);
+
+  // Memoize waste breakdown to prevent re-renders
+  const wasteBreakdown = useMemo(() => {
+    if (!dashboard?.stats?.wasteBreakdown) return [];
+    return Object.entries(dashboard.stats.wasteBreakdown);
+  }, [dashboard?.stats?.wasteBreakdown]);
 
   // Redirect to login if not authenticated
   if (!user && !loading) {
@@ -68,6 +112,7 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      removeClippedSubviews={true}
     >
       <View style={styles.header}>
         <Text style={styles.greeting}>Hello, {user?.name}! 👋</Text>
@@ -77,27 +122,27 @@ export default function HomeScreen() {
       <View style={styles.pointsCard}>
         <Text style={styles.pointsLabel}>Your Points</Text>
         <Text style={styles.pointsValue}>{user?.points || 0}</Text>
-        <TouchableOpacity style={styles.redeemButton} onPress={() => router.push('/(tabs)/rewards')}>
+        <TouchableOpacity style={styles.redeemButton} onPress={navigateToRewards}>
           <Text style={styles.redeemButtonText}>Redeem Rewards</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <Text style={styles.statIcon}>🗑️</Text>
-          <Text style={styles.statValue}>{dashboard?.user?.totalWasteDisposed || 0} kg</Text>
-          <Text style={styles.statLabel}>Total Waste</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statIcon}>📊</Text>
-          <Text style={styles.statValue}>{dashboard?.stats?.totalTransactions || 0}</Text>
-          <Text style={styles.statLabel}>Transactions</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statIcon}>🏅</Text>
-          <Text style={styles.statValue}>{dashboard?.user?.badges?.length || 0}</Text>
-          <Text style={styles.statLabel}>Badges</Text>
-        </View>
+        <StatBox 
+          icon="🗑️"
+          value={`${dashboard?.user?.totalWasteDisposed || 0} kg`}
+          label="Total Waste"
+        />
+        <StatBox 
+          icon="📊"
+          value={dashboard?.stats?.totalTransactions || 0}
+          label="Transactions"
+        />
+        <StatBox 
+          icon="🏅"
+          value={dashboard?.user?.badges?.length || 0}
+          label="Badges"
+        />
       </View>
 
       <View style={styles.section}>
@@ -109,25 +154,18 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {dashboard?.stats?.wasteBreakdown && (
+      {wasteBreakdown.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Waste Breakdown</Text>
-          {Object.entries(dashboard.stats.wasteBreakdown).map(([type, amount]: any) => {
-            const wasteInfo = WASTE_TYPES.find(w => w.value === type);
-            return (
-              <View key={type} style={styles.wasteItem}>
-                <Text style={styles.wasteIcon}>{wasteInfo?.icon || '♻️'}</Text>
-                <Text style={styles.wasteType}>{type}</Text>
-                <Text style={styles.wasteAmount}>{amount} kg</Text>
-              </View>
-            );
-          })}
+          {wasteBreakdown.map(([type, amount]: any) => (
+            <WasteItem key={type} type={type} amount={amount} />
+          ))}
         </View>
       )}
 
       <TouchableOpacity
         style={styles.actionButton}
-        onPress={() => router.push('/(tabs)/map')}
+        onPress={navigateToMap}
       >
         <Text style={styles.actionButtonText}>Find Collection Points</Text>
       </TouchableOpacity>

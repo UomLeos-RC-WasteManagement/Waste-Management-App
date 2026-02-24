@@ -9,11 +9,12 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { API_URL, ENDPOINTS, WASTE_TYPES } from '@/constants/config';
+import { API_URL, ENDPOINTS, WASTE_TYPES, COLORS } from '@/constants/config';
 import { router } from 'expo-router';
 
 interface UserWasteOffer {
@@ -220,18 +221,20 @@ export default function BrowseUserOffersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Browse User Offers</Text>
-        <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
-          <Ionicons
-            name={showFilters ? 'close-circle' : 'filter'}
-            size={24}
-            color="#2ECC71"
-          />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Browse User Offers</Text>
+          <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
+            <Ionicons
+              name={showFilters ? 'close-circle' : 'filter'}
+              size={24}
+              color="#ffffffff"
+            />
+          </TouchableOpacity>
+        </View>
 
       {/* Filters */}
       {showFilters && (
@@ -347,11 +350,16 @@ export default function BrowseUserOffersScreen() {
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F6FA',
@@ -362,14 +370,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#ffffffff',
   },
   filtersSection: {
     backgroundColor: '#fff',
