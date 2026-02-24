@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { COLORS } from '@/constants/config';
+import { Ionicons } from '@expo/vector-icons'; 
 
 type Role = 'user' | 'collector' | 'vendor';
 
@@ -25,6 +26,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('user');
   const [loading, setLoading] = useState(false);
+   const [showPassword, setShowPassword] = useState(false);
 
   const roles = [
     { value: 'user' as Role, label: 'User', icon: '👤', color: '#2ECC71' },
@@ -76,6 +78,10 @@ export default function LoginScreen() {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -84,7 +90,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.icon}>♻️</Text>
-          <Text style={styles.title}>Waste Management</Text>
+          <Text style={styles.title}>EcoDash</Text>
           <Text style={styles.subtitle}>Make Earth Green Again</Text>
         </View>
 
@@ -136,13 +142,22 @@ export default function LoginScreen() {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <View style={styles.passwordInputContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+                <Ionicons 
+                  name={showPassword ? 'eye-off' : 'eye'} 
+                  size={24} 
+                  color="gray" 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -255,6 +270,29 @@ const styles = StyleSheet.create({
     padding: 15,
     fontSize: 16,
     backgroundColor: '#F8F9FA',
+    color: '#000',
+  },
+  passwordInputContainer: {
+    position: 'relative',
+    width: '100%',
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: COLORS.light,
+    borderRadius: 10,
+    padding: 15,
+    paddingRight: 50,
+    fontSize: 16,
+    backgroundColor: '#F8F9FA',
+    color: '#000',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+    padding: 5,
+    zIndex: 1,
   },
   button: {
     padding: 16,

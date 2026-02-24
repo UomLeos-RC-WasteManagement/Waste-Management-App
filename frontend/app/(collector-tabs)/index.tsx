@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -74,10 +75,12 @@ export default function CollectorDashboard() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <ScrollView
+        style={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View>
@@ -202,6 +205,7 @@ export default function CollectorDashboard() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </>
   );
 }
 

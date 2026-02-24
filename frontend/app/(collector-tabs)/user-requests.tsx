@@ -8,11 +8,12 @@ import {
   RefreshControl,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { API_URL, ENDPOINTS, WASTE_TYPES } from '@/constants/config';
+import { API_URL, ENDPOINTS, WASTE_TYPES, COLORS } from '@/constants/config';
 
 interface CollectorPurchaseRequest {
   _id: string;
@@ -378,14 +379,16 @@ export default function MyPurchaseRequestsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Purchase Requests</Text>
-        <TouchableOpacity onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color="#2ECC71" />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>My Purchase Requests</Text>
+          <TouchableOpacity onPress={onRefresh}>
+            <Ionicons name="refresh" size={24} color="#ffffffff" />
+          </TouchableOpacity>
+        </View>
 
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
@@ -445,11 +448,16 @@ export default function MyPurchaseRequestsScreen() {
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: '#F5F6FA',
@@ -460,14 +468,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.primary,
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#f5f5f5ff',
   },
   filterContainer: {
     backgroundColor: '#fff',

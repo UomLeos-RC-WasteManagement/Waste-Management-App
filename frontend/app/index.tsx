@@ -16,7 +16,7 @@ export default function Index() {
 
   // If not logged in, go to login
   if (!user) {
-    return <Redirect href="/(auth)/login" />;
+    return <Redirect href="/(auth)/welcome" />;
   }
 
   // Redirect based on user role

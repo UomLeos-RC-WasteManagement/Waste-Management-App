@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import React from 'react';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -26,14 +27,42 @@ function RootLayoutNav() {
       <Stack 
         screenOptions={{ 
           headerShown: false,
-          animation: 'fade', // Smooth fade animation instead of white flash
-          animationDuration: 150,
+          animation: 'fade',
+          animationDuration: 200,
+          // Critical: Prevent white flash during transitions
+          contentStyle: { backgroundColor: COLORS.white },
+          // Freeze inactive screens to save memory
+          freezeOnBlur: true,
         }}
       >
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(collector-tabs)" />
-        <Stack.Screen name="(vendor-tabs)" />
+        <Stack.Screen 
+          name="(auth)" 
+          options={{
+            animation: 'fade',
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{
+            animation: 'fade',
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen 
+          name="(collector-tabs)" 
+          options={{
+            animation: 'fade',
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen 
+          name="(vendor-tabs)" 
+          options={{
+            animation: 'fade',
+            animationDuration: 200,
+          }}
+        />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       {/* Force dark status bar text on light backgrounds */}

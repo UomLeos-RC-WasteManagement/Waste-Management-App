@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "EcoDash",
+    "slug": "ecodash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "ecodash",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -26,7 +26,10 @@
         "barStyle": "dark-content",
         "backgroundColor": "#FFFFFF",
         "translucent": false
-      }
+      },
+      "enableProguardInReleaseBuilds": true,
+      "enableHermes": true,
+      "jsEngine": "hermes"
     },
     "web": {
       "output": "static",

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +65,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
         <View style={styles.backButtonContainer}>
           <TouchableOpacity 
             style={styles.backButton}
@@ -84,6 +86,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <View style={styles.backButtonContainer}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -220,7 +223,7 @@ export default function ProfileScreen() {
       </TouchableOpacity>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Waste Management App v1.0.0</Text>
+        <Text style={styles.footerText}>EcoDash v1.0.0</Text>
       </View>
     </ScrollView>
     </SafeAreaView>

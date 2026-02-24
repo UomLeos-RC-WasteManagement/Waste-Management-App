@@ -9,6 +9,7 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -226,6 +227,7 @@ export default function ScanQRScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -572,7 +574,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.primary,
     padding: 20,
-    paddingTop: 30,
     paddingBottom: 25,
   },
   title: {

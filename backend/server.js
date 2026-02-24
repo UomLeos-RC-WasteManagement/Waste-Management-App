@@ -36,7 +36,7 @@ app.use('/uploads', express.static('uploads'));
 // Basic route
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Waste Management API',
+    message: 'EcoDash API',
     version: '1.0.0',
     status: 'running',
     endpoints: {

@@ -10,6 +10,10 @@ export default function VendorTabLayout() {
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.gray,
         headerShown: false,
+        // Performance optimizations
+        lazy: true, // Lazy load tabs
+        freezeOnBlur: true, // Freeze inactive tabs to save memory
+        animation: 'shift', // Smooth tab transition
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
@@ -22,7 +26,6 @@ export default function VendorTabLayout() {
           fontSize: 12,
           fontWeight: '600',
         },
-        animation: 'shift', // Smooth tab transition
       }}
     >
       <Tabs.Screen
