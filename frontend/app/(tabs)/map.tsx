@@ -37,27 +37,18 @@ export default function MapScreen() {
     setLoading(true);
     try {
       console.log('🗺️ Fetching collection points...');
-      
-      // Default location (Colombo, Sri Lanka) - can be replaced with user's actual location
-      const userLongitude = 79.8612;
-      const userLatitude = 6.9271;
-      
-      // Add query parameters for longitude and latitude
-      const response: any = await api.get(
-        `${ENDPOINTS.COLLECTION_POINTS}?longitude=${userLongitude}&latitude=${userLatitude}`
-      );
+
+      // Fetch all collectors — no location filter
+      const url = selectedType !== 'all'
+        ? `${ENDPOINTS.COLLECTION_POINTS}?wasteType=${selectedType}`
+        : ENDPOINTS.COLLECTION_POINTS;
+
+      const response: any = await api.get(url);
       
       console.log('📥 Collection points response:', response);
       
       if (response.success && response.data) {
-        let collectionPoints = response.data;
-        
-        // Filter by selected waste type
-        if (selectedType !== 'all') {
-          collectionPoints = collectionPoints.filter((c: any) => 
-            c.acceptedWasteTypes && c.acceptedWasteTypes.includes(selectedType)
-          );
-        }
+        const collectionPoints = response.data;
         
         // Transform data to match component structure
         const formattedCollectors = collectionPoints.map((point: any) => ({
@@ -65,7 +56,15 @@ export default function MapScreen() {
           name: point.name,
           location: `${point.address?.city || 'Unknown'}, ${point.address?.street || ''}`,
           wasteTypes: point.acceptedWasteTypes || [],
-          operatingHours: point.operatingHours || 'Not specified',
+          operatingHours: typeof point.operatingHours === 'string'
+            ? point.operatingHours
+            : point.operatingHours
+              ? Object.entries(point.operatingHours)
+                  .map(([day, hours]: [string, any]) =>
+                    `${day.charAt(0).toUpperCase() + day.slice(1)}: ${hours?.open ?? '—'} - ${hours?.close ?? '—'}`
+                  )
+                  .join(', ')
+              : 'Not specified',
           phone: point.phone || 'Not available',
           distance: point.distance ? `${point.distance.toFixed(1)} km` : '—',
           coordinates: point.location?.coordinates,
@@ -241,6 +240,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   listContainer: {
     flex: 1,

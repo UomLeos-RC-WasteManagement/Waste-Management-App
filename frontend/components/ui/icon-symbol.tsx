@@ -24,6 +24,9 @@ const MAPPING = {
   "map.fill": "map",
   "gift.fill": "card-giftcard",
   "person.fill": "person",
+  "bag.fill": "local-offer",
+  "archivebox.fill": "inventory",
+  "dollarsign.circle.fill": "attach-money",
 } as IconMapping;
 
 /**

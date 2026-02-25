@@ -67,29 +67,13 @@ exports.getNearbyCollectors = async (req, res) => {
   try {
     console.log('🗺️ getNearbyCollectors controller called');
     console.log('🗺️ Query params:', req.query);
-    
-    const { longitude, latitude, maxDistance = 10000, wasteType } = req.query;
 
-    if (!longitude || !latitude) {
-      console.log('❌ Missing longitude or latitude');
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide longitude and latitude'
-      });
-    }
+    const { wasteType } = req.query;
 
+    // Return all active & verified collectors — no location filter
     const query = {
       isActive: true,
       isVerified: true,
-      location: {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(longitude), parseFloat(latitude)]
-          },
-          $maxDistance: parseInt(maxDistance)
-        }
-      }
     };
 
     // Filter by waste type if provided
@@ -97,10 +81,9 @@ exports.getNearbyCollectors = async (req, res) => {
       query.acceptedWasteTypes = wasteType;
     }
 
-    console.log('🗺️ Query object:', JSON.stringify(query, null, 2));
-    console.log('🗺️ Fetching collectors from database...');
+    console.log('🗺️ Fetching all collectors from database...');
 
-    const collectors = await Collector.find(query).select('-password');
+    const collectors = await Collector.find(query).select('-password').sort('name');
 
     console.log('🗺️ Collectors found:', collectors.length);
     console.log('🗺️ Sending response...');

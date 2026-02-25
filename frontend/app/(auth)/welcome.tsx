@@ -1,112 +1,110 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, StatusBar, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ICON_SIZE = Math.min(SCREEN_WIDTH * 0.42, 170);
 
 export default function WelcomeScreen() {
     const router = useRouter();
 
     return (
         <>
-            <StatusBar barStyle="light-content" />
+            <StatusBar style="light" />
             <LinearGradient
                 colors={['#2DD36F', '#1FAF5B', '#16874A']}
                 style={styles.container}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
-                <ScrollView 
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    bounces={false}
-                >
-                    {/* Hero Section */}
-                    <View style={styles.heroSection}>
-                        <View style={styles.titleContainer}>
-                            <Text style={styles.welcomeText}>WELCOME TO</Text>
-                            <Text style={styles.appName}>EcoDash</Text>
-                            <View style={styles.taglineContainer}>
-                                <View style={styles.dividerLeft} />
-                                <Text style={styles.tagline}>Turn Waste into Worth</Text>
-                                <View style={styles.dividerRight} />
-                            </View>
+                {/* Hero Section */}
+                <View style={styles.heroSection}>
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.welcomeText}>WELCOME TO</Text>
+                        <Text style={styles.appName}>EcoDash</Text>
+                        <View style={styles.taglineContainer}>
+                            <View style={styles.dividerLeft} />
+                            <Text style={styles.tagline}>Turn Waste into Worth</Text>
+                            <View style={styles.dividerRight} />
                         </View>
+                    </View>
 
-                        {/* Premium Recycling Icon */}
-                        <View style={styles.iconWrapper}>
-                            <View style={styles.iconOuterRing}>
-                                <View style={styles.iconInnerRing}>
-                                    <View style={styles.iconCore}>
-                                        <Image
-                                            source={require('@/assets/images/icon-removebg-preview.png')}
-                                            style={styles.iconImage}
-                                            resizeMode="contain"
-                                        />
-                                    </View>
+                    {/* Premium Recycling Icon */}
+                    <View style={styles.iconWrapper}>
+                        <View style={[styles.iconOuterRing, { width: ICON_SIZE, height: ICON_SIZE, borderRadius: ICON_SIZE / 2 }]}>
+                            <View style={[styles.iconInnerRing, { width: ICON_SIZE * 0.82, height: ICON_SIZE * 0.82, borderRadius: ICON_SIZE * 0.41 }]}>
+                                <View style={[styles.iconCore, { width: ICON_SIZE * 0.65, height: ICON_SIZE * 0.65, borderRadius: ICON_SIZE * 0.325 }]}>
+                                    <Image
+                                        source={require('@/assets/images/icon-removebg-preview.png')}
+                                        style={styles.iconImage}
+                                        resizeMode="contain"
+                                    />
                                 </View>
                             </View>
                         </View>
                     </View>
+                </View>
 
-                    {/* CTA Section */}
-                    <View style={styles.ctaSection}>
-                        <TouchableOpacity 
-                            onPress={() => router.push('/(auth)/login')} 
-                            style={styles.primaryButton}
-                            activeOpacity={0.9}
+                {/* CTA Section */}
+                <View style={styles.ctaSection}>
+                    <TouchableOpacity 
+                        onPress={() => router.push('/(auth)/login')} 
+                        style={styles.primaryButton}
+                        activeOpacity={0.9}
+                    >
+                        <LinearGradient
+                            colors={['#FFFFFF', '#F8F9FA']}
+                            style={styles.buttonGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
                         >
-                            <LinearGradient
-                                colors={['#FFFFFF', '#F8F9FA']}
-                                style={styles.buttonGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Text style={styles.primaryButtonText}>Get Started</Text>
-                                <Text style={styles.buttonArrow}>→</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
+                            <Text style={styles.primaryButtonText}>Get Started</Text>
+                            <Text style={styles.buttonArrow}>→</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
 
-                        {/* Partners Section - Modern Layout */}
-                        <View style={styles.partnersSection}>
-                          <Text style={styles.partnersTitle}>In collaboration</Text>
-                            
-                            {/* Logo Grid */}
-                            <View style={styles.logoGrid}>
-                                {/* Plastic Cycle - Premium Card (TOP) */}
-                                <View style={styles.partnerCard}>
-                                    <View style={styles.logoFrame}>
-                                        <Image
-                                            source={require('@/assets/images/plastic.png')}
-                                            style={styles.logoImage}
+                    {/* Partners Section - Modern Layout */}
+                    <View style={styles.partnersSection}>
+                      <Text style={styles.partnersTitle}>In collaboration</Text>
+                        
+                        {/* Logo Grid */}
+                        <View style={styles.logoGrid}>
+                            {/* Plastic Cycle - Premium Card (TOP) */}
+                            <View style={styles.partnerCard}>
+                                <View style={styles.logoFrame}>
+                                    <Image
+                                        source={require('@/assets/images/plastic.png')}
+                                        style={styles.logoImage}
+                                        resizeMode="contain"
+                                    />
+                                </View>
+                               
+                            </View>
+
+                            {/* Divider with "×" */}
+                            <View style={styles.collaborationDivider}>
+                                <Text style={styles.collaborationText}>×</Text>
+                                
+                            </View>
+
+                            <Text style={styles.partnersTitle1}>DEVELOPED BY</Text>
+
+                            {/* Leo Club UOM - Premium Card (BOTTOM) */}
+                            <View style={styles.partnerCard}>
+                                <View style={styles.logoFrame}>
+                                    <Image
+                                        source={require('@/assets/images/leo.png')}
+                                        style={styles.logoImage}
                                             resizeMode="contain"
                                         />
                                     </View>
-                                   
-                                </View>
-
-                                {/* Divider with "×" */}
-                                <View style={styles.collaborationDivider}>
-                                    <Text style={styles.collaborationText}>×</Text>
-                                    
-                                </View>
-
-                                <Text style={styles.partnersTitle1}>DEVELOPED BY</Text>
-
-                                {/* Leo Club UOM - Premium Card (BOTTOM) */}
-                                <View style={styles.partnerCard}>
-                                    <View style={styles.logoFrame}>
-                                        <Image
-                                            source={require('@/assets/images/leo.png')}
-                                            style={styles.logoImage}
-                                            resizeMode="contain"
-                                        />
-                                    </View>
-                                    <Text style={styles.partnerName}>Leo Club UOM</Text>
+                                    <Text style={styles.partnerName}>Leo Club Of University of Moratuwa</Text>
                                 </View>
                             </View>
                         </View>
                     </View>
-                </ScrollView>
             </LinearGradient>
         </>
     );
@@ -115,23 +113,21 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-        paddingTop: 50,
-        paddingBottom: 30,
         paddingHorizontal: 24,
+        paddingTop: 50,
+        paddingBottom: 24,
+        justifyContent: 'space-between',
     },
     
     // Hero Section - Premium Layout
     heroSection: {
+        flex: 1,
         alignItems: 'center',
-        paddingTop: 100,
-        
+        justifyContent: 'center',
     },
     titleContainer: {
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 12,
     },
     welcomeText: {
         fontSize: 14,
@@ -178,12 +174,9 @@ const styles = StyleSheet.create({
     // Premium Icon Design
     iconWrapper: {
         marginVertical: 8,
-        marginBottom: 60,
+        marginBottom: 8,
     },
     iconOuterRing: {
-        width: 200,
-        height: 200,
-        borderRadius: 100,
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -191,9 +184,6 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.15)',
     },
     iconInnerRing: {
-        width: 165,
-        height: 165,
-        borderRadius: 82.5,
         backgroundColor: 'rgba(255, 255, 255, 0.12)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -201,9 +191,6 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     iconCore: {
-        width: 130,
-        height: 130,
-        borderRadius: 65,
         backgroundColor: 'rgba(255, 255, 255, 1)',
         justifyContent: 'center',
         alignItems: 'center',
@@ -224,7 +211,6 @@ const styles = StyleSheet.create({
     // CTA Section - Modern Button
     ctaSection: {
         width: '100%',
-        paddingTop: 0,
     },
     primaryButton: {
         width: '100%',

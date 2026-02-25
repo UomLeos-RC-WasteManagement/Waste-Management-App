@@ -20,6 +20,7 @@ export default function VendorOffersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [pricePerKg, setPricePerKg] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     fetchOffers();
@@ -65,38 +66,26 @@ export default function VendorOffersScreen() {
     fetchOffers();
   };
 
-  const handlePurchase = async (offer: any) => {
+  const handlePurchase = (offer: any) => {
     setSelectedOffer(offer);
-    
-    // Prompt for price per kg
-    Alert.prompt(
-      'Enter Price',
-      `How much will you pay per kg for ${offer.wasteType || 'this waste'}?\n\nQuantity: ${offer.quantity || 0} kg`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => setSelectedOffer(null),
-        },
-        {
-          text: 'Purchase',
-          onPress: (priceInput?: string) => {
-            const price = parseFloat(priceInput || '0');
-            
-            if (!price || price <= 0) {
-              Alert.alert('Invalid Price', 'Please enter a valid price per kg');
-              setSelectedOffer(null);
-              return;
-            }
-            
-            completePurchase(offer, price);
-          },
-        },
-      ],
-      'plain-text',
-      '',
-      'numeric'
-    );
+    setPricePerKg('');
+    setModalVisible(true);
+  };
+
+  const handleConfirmPurchase = () => {
+    const price = parseFloat(pricePerKg);
+    if (!price || price <= 0) {
+      Alert.alert('Invalid Price', 'Please enter a valid price per kg');
+      return;
+    }
+    setModalVisible(false);
+    completePurchase(selectedOffer, price);
+  };
+
+  const handleCancelPurchase = () => {
+    setModalVisible(false);
+    setSelectedOffer(null);
+    setPricePerKg('');
   };
 
   const completePurchase = async (offer: any, pricePerKg: number) => {
@@ -169,49 +158,105 @@ export default function VendorOffersScreen() {
       </View>
 
       <View style={styles.offersList}>
-        {offers.map((offer, index) => (
-          <View key={offer._id || `offer-${index}`} style={styles.offerCard}>
-            <View style={styles.offerHeader}>
-              <Text style={styles.collectorName}>
-                {offer.collectorName || 'Unknown Collector'}
-              </Text>
-              <View style={styles.typeBadge}>
-                <Text style={styles.typeBadgeText}>
-                  {offer.wasteType || offer.type || 'Mixed'}
+        {offers.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyText}>No offers available</Text>
+            <Text style={styles.emptySubtext}>Pull down to refresh</Text>
+          </View>
+        ) : (
+          offers.map((offer, index) => (
+            <View key={offer._id || `offer-${index}`} style={styles.offerCard}>
+              <View style={styles.offerHeader}>
+                <Text style={styles.collectorName}>
+                  {offer.collectorName || 'Unknown Collector'}
+                </Text>
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText}>
+                    {offer.wasteType || offer.type || 'Mixed'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.offerDetails}>
+                <Text style={styles.offerWeight}>
+                  ⚖️ {offer.quantity || offer.weight || 0} kg
+                </Text>
+                <Text style={styles.offerPrice}>
+                  💰 Price on request
                 </Text>
               </View>
+              <TouchableOpacity
+                style={styles.purchaseButton}
+                onPress={() => handlePurchase(offer)}
+              >
+                <Text style={styles.purchaseButtonText}>Purchase</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.offerDetails}>
-              <Text style={styles.offerWeight}>
-                ⚖️ {offer.quantity || offer.weight || 0} kg
-              </Text>
-              <Text style={styles.offerPrice}>
-                💰 Price on request
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.purchaseButton}
-              onPress={() => handlePurchase(offer)}
-            >
-              <Text style={styles.purchaseButtonText}>Purchase</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+          ))
+        )}
       </View>
+
+      {/* Purchase Price Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCancelPurchase}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Enter Purchase Price</Text>
+            <Text style={styles.modalSubtitle}>
+              {selectedOffer?.wasteType || 'Waste'} · {selectedOffer?.quantity || 0} kg{'\n'}
+              From: {selectedOffer?.collectorName || 'Collector'}
+            </Text>
+
+            <Text style={styles.inputLabel}>Price per kg (Rs.)</Text>
+            <TextInput
+              style={styles.priceInput}
+              value={pricePerKg}
+              onChangeText={setPricePerKg}
+              keyboardType="numeric"
+              placeholder="e.g. 25"
+              placeholderTextColor="#999"
+              autoFocus
+            />
+
+            {pricePerKg && parseFloat(pricePerKg) > 0 && (
+              <Text style={styles.totalPreview}>
+                Total: Rs. {(parseFloat(pricePerKg) * (selectedOffer?.quantity || 0)).toFixed(2)}
+              </Text>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCancelPurchase}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPurchase}>
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F5' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
   header: { backgroundColor: COLORS.primary, padding: 20, paddingTop: 60, paddingBottom: 30 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 5 },
   subtitle: { fontSize: 16, color: '#FFFFFF', opacity: 0.9 },
   offersList: { padding: 20 },
+  emptyContainer: { alignItems: 'center', paddingVertical: 60 },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: COLORS.dark, marginBottom: 6 },
+  emptySubtext: { fontSize: 14, color: COLORS.gray },
   offerCard: { backgroundColor: '#FFFFFF', borderRadius: 15, padding: 20, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   offerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  collectorName: { fontSize: 18, fontWeight: 'bold', color: COLORS.dark },
+  collectorName: { fontSize: 18, fontWeight: 'bold', color: COLORS.dark, flex: 1 },
   typeBadge: { backgroundColor: '#E8F5E9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   typeBadgeText: { fontSize: 12, fontWeight: 'bold', color: COLORS.primary },
   offerDetails: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
@@ -219,4 +264,17 @@ const styles = StyleSheet.create({
   offerPrice: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary },
   purchaseButton: { backgroundColor: COLORS.primary, padding: 14, borderRadius: 10, alignItems: 'center' },
   purchaseButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  // Modal styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContainer: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, width: '100%' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.dark, marginBottom: 8 },
+  modalSubtitle: { fontSize: 14, color: COLORS.gray, marginBottom: 20, lineHeight: 20 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: COLORS.dark, marginBottom: 8 },
+  priceInput: { borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, fontSize: 18, color: COLORS.dark, marginBottom: 12 },
+  totalPreview: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary, textAlign: 'center', marginBottom: 20 },
+  modalButtons: { flexDirection: 'row', gap: 12 },
+  cancelButton: { flex: 1, padding: 14, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.gray, alignItems: 'center' },
+  cancelButtonText: { fontSize: 16, fontWeight: '600', color: COLORS.gray },
+  confirmButton: { flex: 1, padding: 14, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center' },
+  confirmButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
 });

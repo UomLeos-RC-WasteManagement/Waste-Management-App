@@ -3,6 +3,7 @@ import React from "react";
 import { Platform, View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/config";
+import { StatusBar } from "expo-status-bar";
 
 // Custom Tab Button Component - Memoized for performance
 const CustomTabButton = React.memo(({
@@ -38,7 +39,9 @@ CustomTabButton.displayName = 'CustomTabButton';
 
 export default function TabLayout() {
   return (
-    <Tabs
+    <>
+      <StatusBar style="light" backgroundColor={COLORS.primary} />
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: "#9E9E9E",
@@ -170,6 +173,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
 

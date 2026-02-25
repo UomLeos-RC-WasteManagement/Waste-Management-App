@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { ENDPOINTS, COLORS } from '@/constants/config';
@@ -43,13 +44,15 @@ export default function VendorDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    if (user && user.role === 'vendor') {
-      fetchStats();
-    } else {
-      setLoading(false);
-    }
-  }, [user, fetchStats]);
+  useFocusEffect(
+    useCallback(() => {
+      if (user && user.role === 'vendor') {
+        fetchStats();
+      } else {
+        setLoading(false);
+      }
+    }, [user, fetchStats])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -171,6 +174,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     backgroundColor: COLORS.primary,

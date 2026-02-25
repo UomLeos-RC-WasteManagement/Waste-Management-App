@@ -68,18 +68,32 @@ export default function PricingScreen() {
       setSaving(true);
       console.log('💰 Saving vendor pricing...');
       
-      // Convert pricing map to array format
+      // Validate: all entries must be non-negative numbers
+      for (const [wasteType, price] of Object.entries(pricing)) {
+        const parsed = parseFloat(price as string);
+        if (isNaN(parsed) || parsed < 0) {
+          Alert.alert('Invalid Price', `Please enter a valid price for ${wasteType}`);
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Convert pricing map to array format expected by backend
       const pricingArray = Object.entries(pricing).map(([wasteType, price]) => ({
         wasteType,
         pricePerKg: parseFloat(price as string) || 0,
+        isActive: true,
       }));
       
-      const response: any = await api.post(ENDPOINTS.VENDOR_PRICING, {
+      // Backend route is PUT /vendors/pricing
+      const response: any = await api.put(ENDPOINTS.VENDOR_PRICING, {
         pricing: pricingArray,
       });
       
       if (response.success) {
-        Alert.alert('Success', 'Pricing updated successfully!');
+        // Re-fetch from server to confirm saved values are reflected
+        await fetchPricing();
+        Alert.alert('Success ✅', 'Pricing updated successfully!');
         console.log('💰✅ Pricing saved successfully');
       } else {
         Alert.alert('Error', response.message || 'Failed to update pricing');

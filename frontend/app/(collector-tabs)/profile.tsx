@@ -243,6 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   loadingContent: {
     flex: 1,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: 20,
+    paddingTop: 60,
     paddingBottom: 30,
     alignItems: 'center',
   },

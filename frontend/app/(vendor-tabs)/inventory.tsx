@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, WASTE_TYPES, ENDPOINTS } from '@/constants/config';
 import api from '@/services/api';
 
@@ -15,19 +16,17 @@ export default function VendorInventoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchInventory();
-  }, []);
-
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       console.log('📦 Fetching vendor inventory...');
       const response: any = await api.get(ENDPOINTS.VENDOR_INVENTORY);
       console.log('📦📥 Vendor inventory response:', response);
       
       if (response.success) {
-        setInventory(response.data.inventory || response.data || []);
-        console.log('📦✅ Vendor inventory loaded:', response.data);
+        // Backend returns { purchases, summary } — summary is the grouped inventory by waste type
+        const summaryData = response.data?.summary || response.data?.inventory || response.data || [];
+        setInventory(Array.isArray(summaryData) ? summaryData : []);
+        console.log('📦✅ Vendor inventory loaded:', summaryData);
       }
     } catch (error) {
       console.error('📦❌ Error fetching vendor inventory:', error);
@@ -36,7 +35,13 @@ export default function VendorInventoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchInventory();
+    }, [fetchInventory])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -47,7 +52,7 @@ export default function VendorInventoryScreen() {
     if (!Array.isArray(inventory) || inventory.length === 0) {
       return '0.0';
     }
-    return inventory.reduce((sum, item) => sum + (item.weight || item.totalQuantity || 0), 0).toFixed(1);
+    return inventory.reduce((sum, item) => sum + (item.totalQuantity || item.weight || 0), 0).toFixed(1);
   };
 
   if (loading) {
@@ -76,10 +81,10 @@ export default function VendorInventoryScreen() {
       <View style={styles.inventoryList}>
         {Array.isArray(inventory) && inventory.length > 0 ? (
           inventory.map((item, index) => {
-            const wasteType = item.type || item.wasteType;
+            const wasteType = item.wasteType || item.type;
             const wasteInfo = WASTE_TYPES.find(w => w.value === wasteType);
-            const weight = item.weight || item.totalQuantity || 0;
-            const collections = item.collections || item.transactions || 0;
+            const weight = item.totalQuantity || item.weight || 0;
+            const collections = item.purchases || item.collections || item.transactions || 0;
             
             return (
               <View key={index} style={styles.inventoryCard}>
@@ -117,6 +122,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -195,5 +201,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.primary,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.dark,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });

@@ -2,10 +2,13 @@ import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { COLORS } from '@/constants/config';
+import { StatusBar } from 'expo-status-bar';
 
 export default function VendorTabLayout() {
   return (
-    <Tabs
+    <>
+      <StatusBar style="light" backgroundColor={COLORS.primary} />
+      <Tabs
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.gray,
@@ -64,5 +67,6 @@ export default function VendorTabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
