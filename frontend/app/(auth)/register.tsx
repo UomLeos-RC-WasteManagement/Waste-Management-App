@@ -191,6 +191,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter your name"
+              placeholderTextColor="#9CA3AF"
               value={formData.name}
               onChangeText={(value) => handleChange('name', value)}
               autoCapitalize="words"
@@ -202,6 +203,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter your email"
+              placeholderTextColor="#9CA3AF"
               value={formData.email}
               onChangeText={(value) => handleChange('email', value)}
               keyboardType="email-address"
@@ -215,6 +217,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="+1234567890"
+              placeholderTextColor="#9CA3AF"
               value={formData.phone}
               onChangeText={(value) => handleChange('phone', value)}
               keyboardType="phone-pad"
@@ -226,6 +229,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="At least 6 characters"
+              placeholderTextColor="#9CA3AF"
               value={formData.password}
               onChangeText={(value) => handleChange('password', value)}
               secureTextEntry
@@ -237,6 +241,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="Re-enter password"
+              placeholderTextColor="#9CA3AF"
               value={formData.confirmPassword}
               onChangeText={(value) => handleChange('confirmPassword', value)}
               secureTextEntry
@@ -285,6 +290,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g., Mon-Fri 9AM-5PM"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.operatingHours}
                   onChangeText={(value) => handleChange('operatingHours', value)}
                 />
@@ -297,6 +303,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="123 Main Street"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.street}
                   onChangeText={(value) => handleChange('street', value)}
                 />
@@ -307,6 +314,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Colombo"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.city}
                   onChangeText={(value) => handleChange('city', value)}
                 />
@@ -318,6 +326,7 @@ export default function RegisterScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Western"
+                    placeholderTextColor="#9CA3AF"
                     value={formData.state}
                     onChangeText={(value) => handleChange('state', value)}
                   />
@@ -328,6 +337,7 @@ export default function RegisterScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="00100"
+                    placeholderTextColor="#9CA3AF"
                     value={formData.zipCode}
                     onChangeText={(value) => handleChange('zipCode', value)}
                   />
@@ -340,6 +350,7 @@ export default function RegisterScreen() {
                   <TextInput
                     style={[styles.input, { flex: 1, marginRight: 8 }]}
                     placeholder="Latitude (e.g., 6.9271)"
+                    placeholderTextColor="#9CA3AF"
                     value={formData.latitude}
                     onChangeText={(value) => handleChange('latitude', value)}
                     keyboardType="decimal-pad"
@@ -347,6 +358,7 @@ export default function RegisterScreen() {
                   <TextInput
                     style={[styles.input, { flex: 1, marginLeft: 8 }]}
                     placeholder="Longitude (e.g., 79.8612)"
+                    placeholderTextColor="#9CA3AF"
                     value={formData.longitude}
                     onChangeText={(value) => handleChange('longitude', value)}
                     keyboardType="decimal-pad"
@@ -362,6 +374,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Tell us about your collection point"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.description}
                   onChangeText={(value) => handleChange('description', value)}
                   multiline
@@ -412,6 +425,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="https://yourwebsite.com"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.website}
                   onChangeText={(value) => handleChange('website', value)}
                   keyboardType="url"
@@ -424,6 +438,7 @@ export default function RegisterScreen() {
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   placeholder="Tell us about your business"
+                  placeholderTextColor="#9CA3AF"
                   value={formData.description}
                   onChangeText={(value) => handleChange('description', value)}
                   multiline
