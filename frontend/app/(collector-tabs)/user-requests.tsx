@@ -467,10 +467,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 40,
+    paddingBottom: 30,
     backgroundColor: COLORS.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
   },
   headerTitle: {
     fontSize: 20,

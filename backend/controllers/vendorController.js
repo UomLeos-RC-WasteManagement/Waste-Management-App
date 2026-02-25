@@ -14,8 +14,48 @@ exports.getDashboard = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.user._id);
 
-    // Get active rewards count
     const now = new Date();
+
+    // ── Date boundaries ──────────────────────────────────────────────────────
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    // ── Purchase stats ───────────────────────────────────────────────────────
+    const allPurchases = await WastePurchase.find({ vendor: req.user._id });
+
+    const completedPurchases = allPurchases.filter(p => p.status === 'completed');
+    const pendingPurchases   = allPurchases.filter(p => p.status === 'pending');
+
+    const todayPurchases = completedPurchases.filter(
+      p => new Date(p.createdAt) >= startOfToday
+    );
+    const weeklyPurchases = completedPurchases.filter(
+      p => new Date(p.createdAt) >= startOfWeek
+    );
+    const monthlyPurchases = completedPurchases.filter(
+      p => new Date(p.createdAt) >= startOfMonth
+    );
+
+    const sumWeight = arr => arr.reduce((s, p) => s + (p.quantity?.value || 0), 0);
+    const sumAmount = arr => arr.reduce((s, p) => s + (p.totalAmount || 0), 0);
+
+    const todayWeight   = sumWeight(todayPurchases);
+    const weeklyWeight  = sumWeight(weeklyPurchases);
+    const monthlyWeight = sumWeight(monthlyPurchases);
+    const totalSpent    = sumAmount(completedPurchases);
+
+    // Current inventory = all completed purchase weight
+    const currentInventory = sumWeight(completedPurchases);
+
+    // ── Active rewards ───────────────────────────────────────────────────────
     const activeRewards = await Reward.countDocuments({
       vendor: req.user._id,
       isActive: true,
@@ -23,26 +63,15 @@ exports.getDashboard = async (req, res) => {
       validUntil: { $gte: now }
     });
 
-    // Get this month's redemptions
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
+    // ── Monthly redemptions ──────────────────────────────────────────────────
     const monthRedemptions = await RewardRedemption.find({
       vendor: req.user._id,
       createdAt: { $gte: startOfMonth }
     });
 
-    const monthlyRedemptionsCount = monthRedemptions.length;
-    const monthlyPointsDistributed = monthRedemptions.reduce(
-      (sum, r) => sum + r.pointsUsed, 
-      0
-    );
-
-    // Get unique users this month
-    const uniqueUsersThisMonth = new Set(
-      monthRedemptions.map(r => r.user.toString())
-    ).size;
+    const monthlyRedemptionsCount    = monthRedemptions.length;
+    const monthlyPointsDistributed   = monthRedemptions.reduce((s, r) => s + r.pointsUsed, 0);
+    const uniqueUsersThisMonth       = new Set(monthRedemptions.map(r => r.user.toString())).size;
 
     res.status(200).json({
       success: true,
@@ -54,11 +83,21 @@ exports.getDashboard = async (req, res) => {
           totalRedemptions: vendor.totalRedemptions,
           uniqueUsers: vendor.uniqueUsers
         },
+        // Purchase / waste stats (used by dashboard screen)
+        todayPurchases:   todayPurchases.length,
+        todayWeight:      parseFloat(todayWeight.toFixed(2)),
+        weeklyWeight:     parseFloat(weeklyWeight.toFixed(2)),
+        monthlyWeight:    parseFloat(monthlyWeight.toFixed(2)),
+        totalSpent:       parseFloat(totalSpent.toFixed(2)),
+        currentInventory: parseFloat(currentInventory.toFixed(2)),
+        pendingPurchases: pendingPurchases.length,
+        totalPurchases:   completedPurchases.length,
+        // Rewards stats
         activeRewards,
         thisMonth: {
-          redemptions: monthlyRedemptionsCount,
+          redemptions:       monthlyRedemptionsCount,
           pointsDistributed: monthlyPointsDistributed,
-          uniqueUsers: uniqueUsersThisMonth
+          uniqueUsers:       uniqueUsersThisMonth
         }
       }
     });
@@ -561,15 +600,15 @@ exports.purchaseWaste = async (req, res) => {
         });
       }
 
-      // Reserve the offer
-      offer.status = 'reserved';
+      // Mark the offer as sold (remove from available listings)
+      offer.status = 'sold';
       await offer.save();
     }
 
     // Calculate total amount
     const totalAmount = quantity * pricePerUnit;
 
-    // Create purchase request (status: pending)
+    // Create purchase record as completed immediately
     const purchase = await WastePurchase.create({
       vendor: req.user._id,
       collector: collectorId,
@@ -581,12 +620,12 @@ exports.purchaseWaste = async (req, res) => {
       },
       pricePerUnit,
       totalAmount,
-      status: 'pending', // Waiting for collector confirmation
-      pickupDate: pickupDate || new Date(Date.now() + 24 * 60 * 60 * 1000),
+      status: 'completed',
+      pickupDate: pickupDate || new Date(),
       vendorNotes: notes,
       location: collector.location,
       collectorResponse: {
-        status: 'pending'
+        status: 'accepted'
       }
     });
 
@@ -597,7 +636,7 @@ exports.purchaseWaste = async (req, res) => {
     res.status(201).json({
       success: true,
       data: purchase,
-      message: 'Purchase request sent to collector. Awaiting confirmation.'
+      message: 'Purchase completed successfully.'
     });
   } catch (error) {
     res.status(500).json({

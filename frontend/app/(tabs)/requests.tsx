@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { API_URL, ENDPOINTS, WASTE_TYPES } from '@/constants/config';
+import { API_URL, ENDPOINTS, WASTE_TYPES, COLORS } from '@/constants/config';
 
 interface PurchaseRequest {
   _id: string;
@@ -299,7 +299,7 @@ export default function PurchaseRequestsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Purchase Requests</Text>
         <TouchableOpacity onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color="#2ECC71" />
+          <Ionicons name="refresh" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -411,15 +411,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingTop: 60,
+    paddingBottom: 30,
+    backgroundColor: COLORS.primary,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#FFFFFF',
   },
   filterContainer: {
     backgroundColor: '#fff',

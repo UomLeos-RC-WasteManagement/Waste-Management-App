@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { API_URL, ENDPOINTS, WASTE_TYPES } from '@/constants/config';
+import { API_URL, ENDPOINTS, WASTE_TYPES, COLORS } from '@/constants/config';
 import { router } from 'expo-router';
 
 interface UserWasteOffer {
@@ -239,7 +239,7 @@ export default function OffersScreen() {
           style={styles.createButton}
           onPress={() => router.push('/(tabs)/create-offer')}
         >
-          <Ionicons name="add-circle" size={24} color="#2ECC71" />
+          <Ionicons name="add-circle" size={24} color="#FFFFFF" />
           <Text style={styles.createButtonText}>Create Offer</Text>
         </TouchableOpacity>
       </View>
@@ -315,15 +315,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
+    paddingTop: 60,
+    paddingBottom: 30,
+    backgroundColor: COLORS.primary,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#FFFFFF',
   },
   createButton: {
     flexDirection: 'row',
@@ -333,7 +332,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2ECC71',
+    color: '#FFFFFF',
   },
   filterContainer: {
     backgroundColor: '#fff',
