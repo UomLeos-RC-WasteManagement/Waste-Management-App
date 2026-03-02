@@ -100,7 +100,7 @@ export default function WelcomeScreen() {
                                             resizeMode="contain"
                                         />
                                     </View>
-                                    <Text style={styles.partnerName}>Leo Club Of University of Moratuwa</Text>
+                                    <Text style={styles.partnerName}>Leo Club of University of Moratuwa</Text>
                                 </View>
                             </View>
                         </View>
