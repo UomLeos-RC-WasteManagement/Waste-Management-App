@@ -509,11 +509,10 @@ exports.updateProfile = async (req, res) => {
 // @access  Private (Vendor)
 exports.getOffers = async (req, res) => {
   try {
-    const { wasteType, radius = 50, minQuantity, maxPrice } = req.query; // radius in km
+    const { wasteType, minQuantity, maxPrice } = req.query;
 
     let offerQuery = { 
-      status: 'available',
-      expiresAt: { $gte: new Date() }
+      status: 'available'
     };
 
     // Filter by waste type
@@ -531,18 +530,7 @@ exports.getOffers = async (req, res) => {
       offerQuery.minPricePerKg = { $lte: parseFloat(maxPrice) };
     }
 
-    // If vendor has location, find offers within radius
-    if (req.user.location && req.user.location.coordinates) {
-      offerQuery.location = {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: req.user.location.coordinates
-          },
-          $maxDistance: radius * 1000 // Convert km to meters
-        }
-      };
-    }
+    // No location filter — show all available offers from all collectors
 
     const offers = await WasteOffer.find(offerQuery)
       .populate('collector', 'name address phone location totalWasteCollected')

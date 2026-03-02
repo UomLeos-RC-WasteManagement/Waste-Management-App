@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   StatusBar,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,6 +55,12 @@ export default function MyPurchaseRequestsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'completed'>('all');
+  
+  // Payment modal state
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<string>('');
+  const [offeredAmount, setOfferedAmount] = useState(0);
+  const [paymentAmount, setPaymentAmount] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -93,56 +101,60 @@ export default function MyPurchaseRequestsScreen() {
     fetchRequests();
   };
 
-  const completePickup = async (requestId: string, offeredPrice: number) => {
-    Alert.prompt(
-      'Complete Pickup & Pay User',
-      `Enter the amount you are paying to the user (Offered: LKR ${offeredPrice})`,
-      [
-        { text: 'Cancel', style: 'cancel' },
+  const completePickup = (requestId: string, offeredPrice: number) => {
+    setSelectedRequestId(requestId);
+    setOfferedAmount(offeredPrice);
+    setPaymentAmount(String(offeredPrice));
+    setPaymentModalVisible(true);
+  };
+
+  const handleConfirmPayment = async () => {
+    const amount = parseFloat(paymentAmount);
+    
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid payment amount');
+      return;
+    }
+
+    setPaymentModalVisible(false);
+
+    try {
+      const response = await fetch(
+        `${API_URL}${ENDPOINTS.COLLECTOR_COMPLETE_USER_PICKUP(selectedRequestId)}`,
         {
-          text: 'Pay & Complete',
-          onPress: async (paymentAmount?: string) => {
-            const amount = parseFloat(paymentAmount || String(offeredPrice));
-            
-            if (isNaN(amount) || amount <= 0) {
-              Alert.alert('Error', 'Please enter a valid payment amount');
-              return;
-            }
-
-            try {
-              const response = await fetch(
-                `${API_URL}${ENDPOINTS.COLLECTOR_COMPLETE_USER_PICKUP(requestId)}`,
-                {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ paymentAmount: amount }),
-                }
-              );
-
-              const data = await response.json();
-
-              if (data.success) {
-                Alert.alert(
-                  'Success',
-                  data.message || `Pickup completed! You paid LKR ${amount}. Waste added to your inventory.`
-                );
-                fetchRequests();
-              } else {
-                Alert.alert('Error', data.message || 'Failed to complete pickup');
-              }
-            } catch (error) {
-              console.error('Error completing pickup:', error);
-              Alert.alert('Error', 'Failed to complete pickup');
-            }
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
-        },
-      ],
-      'plain-text',
-      String(offeredPrice)
-    );
+          body: JSON.stringify({ paymentAmount: amount }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert(
+          'Success ✅',
+          data.message || `Pickup completed! You paid LKR ${amount}. Waste added to your inventory.`
+        );
+        fetchRequests();
+      } else {
+        Alert.alert('Error', data.message || 'Failed to complete pickup');
+      }
+    } catch (error) {
+      console.error('Error completing pickup:', error);
+      Alert.alert('Error', 'Failed to complete pickup');
+    } finally {
+      setPaymentAmount('');
+      setSelectedRequestId('');
+    }
+  };
+
+  const handleCancelPayment = () => {
+    setPaymentModalVisible(false);
+    setPaymentAmount('');
+    setSelectedRequestId('');
   };
 
   const cancelRequest = async (requestId: string) => {
@@ -448,6 +460,54 @@ export default function MyPurchaseRequestsScreen() {
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
+
+      {/* Payment Modal */}
+      <Modal
+        visible={paymentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCancelPayment}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Complete Pickup & Pay User</Text>
+            <Text style={styles.modalSubtitle}>
+              Enter the amount you are paying to the user
+            </Text>
+            
+            <View style={styles.offerInfo}>
+              <Text style={styles.offerLabel}>Your offered price:</Text>
+              <Text style={styles.offerValue}>LKR {offeredAmount}</Text>
+            </View>
+
+            <Text style={styles.inputLabel}>Payment Amount (LKR)</Text>
+            <TextInput
+              style={styles.paymentInput}
+              value={paymentAmount}
+              onChangeText={setPaymentAmount}
+              keyboardType="decimal-pad"
+              placeholder="Enter amount"
+              placeholderTextColor="#9CA3AF"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelModalButton}
+                onPress={handleCancelPayment}
+              >
+                <Text style={styles.cancelModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmModalButton}
+                onPress={handleConfirmPayment}
+              >
+                <Ionicons name="checkmark-done" size={20} color="#fff" />
+                <Text style={styles.confirmModalButtonText}>Pay & Complete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       </View>
     </SafeAreaView>
   );
@@ -751,5 +811,98 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 20,
+  },
+  // Payment Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  offerInfo: {
+    backgroundColor: '#FEF5E7',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  offerLabel: {
+    fontSize: 14,
+    color: '#7F8C8D',
+  },
+  offerValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ECC71',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 8,
+  },
+  paymentInput: {
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+    backgroundColor: '#F8F9FA',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelModalButton: {
+    flex: 1,
+    backgroundColor: '#F5F6FA',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  cancelModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7F8C8D',
+  },
+  confirmModalButton: {
+    flex: 1,
+    backgroundColor: '#2ECC71',
+    borderRadius: 10,
+    padding: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  confirmModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
